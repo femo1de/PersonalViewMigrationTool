@@ -131,7 +131,7 @@ namespace PersonalViewMigrationTool
 
             WorkAsync(new WorkAsyncInfo()
             {
-                Message = "Loading Personal Views",
+                Message = "Mapping and Loading Personal Views",
                 Work = RetrievePersonalViews,
                 PostWorkCallBack = OnPersonalViewsRetrieved
             });
@@ -235,6 +235,7 @@ namespace PersonalViewMigrationTool
         {
             if (Service == null)
             {
+                CustomLog("Source connection has not been set. Please connect a source environment.");
                 MessageBox.Show("Source connection has not been set. Please connect a source environment.", "Please connect source system", MessageBoxButton.OK, MessageBoxImage.Stop);
                 args.Cancel = true;
                 return;
@@ -260,7 +261,6 @@ namespace PersonalViewMigrationTool
 
             CustomLog($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
             CustomLog($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
-            CustomLog("Checking whether those can be mapped 1:1 via their IDs...");
 
             tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users retrieved";
 
@@ -271,10 +271,12 @@ namespace PersonalViewMigrationTool
                 CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system.");
             }
             btnLoadPersonalViews.Enabled = true;
+            CustomLog("----------------------");
         }
 
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
+            CustomLog("Mapping users / teams from source to target...");
             foreach (var sourceUserOrTeam in sourceUserAndTeamRecords)
             {
                 var mo = new MigrationObject()
@@ -332,16 +334,16 @@ namespace PersonalViewMigrationTool
                     }
                 }
 
-                CustomLog($"Getting personal views of user / team: {sourceUserOrTeam.Id}");
+                //CustomLog($"Getting personal views of user / team: {sourceUserOrTeam.Id}");
                 var userPersonalViews = sourceConnection.GetCrmServiceClient().RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsByUser, sourceUserOrTeam.Id)));
 
-                CustomLog($"This user / team has {userPersonalViews.Count} personal views which could be migrated.");
+                //CustomLog($"This user / team has {userPersonalViews.Count} personal views which could be migrated.");
 
                 userPersonalViews.ForEach(x => mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject { PersonalView = x }));
 
                 migrationObjects.Add(mo);
             }
-
+            CustomLog("Done.");
             CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, owned between {migrationObjects.Count} users or teams.");
         }
 
@@ -349,15 +351,18 @@ namespace PersonalViewMigrationTool
         {
             btnLoadSharing.Enabled = true;
             tbPersonalViewsLoadedStatus.Text = $"Retrieved {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} views.";
+            CustomLog("----------------------");
         }
 
         private void RetrieveSharings(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Retrieving the Sharings for the loaded personal views..");
 
-            foreach (var migrationObject in migrationObjects)
+            foreach (var migrationObject in migrationObjects.Where(x => x.PersonalViewsMigrationObjects.Any()))
             {
                 // user level
+                CustomLog($"Mapping Views owned by {migrationObject.OwnerId}..");
+
                 foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                 {
                     // personal view level
@@ -444,15 +449,17 @@ namespace PersonalViewMigrationTool
                         }
                     }
                 }
+                CustomLog("Done.");
             }
 
-            CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects.");
+            CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects in total.");
         }
 
         private void OnSharingRetrieved(RunWorkerCompletedEventArgs obj)
         {
             tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
             btnStartMigration.Enabled = true;
+            CustomLog("----------------------");
         }
 
         private void Migrate(BackgroundWorker worker, DoWorkEventArgs args)
@@ -468,11 +475,18 @@ namespace PersonalViewMigrationTool
             int currentPoACount = 0;
             int totalPoACount = migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count));
 
-            foreach (var migrationObject in migrationObjects.Where(x => x.MappedOwnerId != null && x.PersonalViewsMigrationObjects.Any())) 
+            foreach (var migrationObject in migrationObjects) 
             {
                 currentUserTeamCount++;
+
+                if (migrationObject.MappedOwnerId == null || !migrationObject.PersonalViewsMigrationObjects.Any())
+                {
+                    // this user does not own any views
+                    continue;
+                }
+
                 // impersonate the owner of this batch
-                CustomLog($"Migrating User / Team with ID: {migrationObject.OwnerId}..");
+                CustomLog($"Migrating Views owned by User / Team with ID: {migrationObject.OwnerId}..");
                 var impersonatedConnection = targetConnection.GetCrmServiceClient();
                 impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
@@ -511,11 +525,23 @@ namespace PersonalViewMigrationTool
                     CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                 }
             }
+            CustomLog("----------------------");
             CustomLog($"Migration completed. Migrated {currentViewCount} views owned by {currentUserTeamCount} users or teams and shared them with {currentPoACount} users or teams.");
+
+            if (currentViewCount != totalViewCount || currentPoACount != totalPoACount)
+            {
+                CustomLog("Not all views or sharings could be migrated. Please refer to the log file for a complete list.");
+                MessageBox.Show("Not all views or sharings could be migrated. Please refer to the log file for a complete list.", "Not everything could be migrated", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            }
+            else
+            {
+                MessageBox.Show("Migration completed successfully", "", MessageBoxButton.OK);
+            }
         }
 
         private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
         {
+            btnConnectSource.Enabled = false;
             btnConnectTargetOrg.Enabled = false;
             btnLoadPersonalViews.Enabled = false;
             btnLoadSharing.Enabled = false;
@@ -524,7 +550,6 @@ namespace PersonalViewMigrationTool
 
             tbMigrationResult.Text = "Migration completed.";
         }
-
 
         private List<Entity> RetrieveUserRecords(IOrganizationService service)
         {
@@ -578,6 +603,7 @@ namespace PersonalViewMigrationTool
             }
             else
             {
+                LogInfo(text);
                 lbDebugOutput.Items.Add(text);
                 if (lbDebugOutput.Items.Count > 1000)
                 {
@@ -587,15 +613,9 @@ namespace PersonalViewMigrationTool
                 lbDebugOutput.SelectedIndex = lbDebugOutput.Items.Count - 1;
                 lbDebugOutput.ClearSelected();
             }
-            LogInfo(text);
         }
 
-
-
-
-
         #endregion
-
 
     }
 }
