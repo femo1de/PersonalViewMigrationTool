@@ -2,11 +2,13 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>femo1de.PersonalViewMigrationTool</id>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <title>Personal View Migration Tool for XrmToolbox</title>
     <authors>Felix Mora</authors>
     <owners>Felix Mora</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/femo1de/PersonalViewMigrationTool</projectUrl>
+    <iconUrl>https://github.com/femo1de/PersonalViewMigrationTool/blob/master/PersonalViewMigrationTool/Resources/icon80.png</iconUrl>
     <description>Plugin for XrmToolBox to migrate personal views including their sharings</description>
     <releaseNotes>Initial alpha release. Bugs expected</releaseNotes>
     <tags>XrmToolBox</tags>
