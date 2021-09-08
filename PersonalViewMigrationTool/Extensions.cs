@@ -1,16 +1,34 @@
-﻿using System;
+﻿using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Query;
 
 namespace PersonalViewMigrationTool
 {
     public static class Extensions
     {
+        public static Entity Copy(this Entity record, params string[] columns)
+        {
+            var result = new Entity(record.LogicalName, record.Id);
+
+            var columnsToCopy = columns;
+
+            if (columnsToCopy.Length == 0)
+            {
+                columnsToCopy = record.Attributes.Keys.ToArray();
+            }
+
+            foreach (var column in columnsToCopy)
+            {
+                if (record.Contains(column))
+                    result[column] = record[column];
+            }
+
+            return result;
+        }
+
         public static Guid Upsert(this IOrganizationService service, Entity record)
         {
             var query = new QueryByAttribute(record.LogicalName)

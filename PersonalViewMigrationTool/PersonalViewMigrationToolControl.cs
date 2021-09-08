@@ -7,11 +7,9 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using XrmToolBox.Extensibility;
 
 namespace PersonalViewMigrationTool
@@ -28,7 +26,6 @@ namespace PersonalViewMigrationTool
 
         private List<MigrationObject> migrationObjects = new List<MigrationObject>();
 
-
         // TODO: Limit columns
         const string fetch_PersonalViewsByUser = @"
                     <fetch>
@@ -39,7 +36,6 @@ namespace PersonalViewMigrationTool
                       </entity>
                     </fetch>";
 
-
         public PersonalViewMigrationToolControl()
         {
             InitializeComponent();
@@ -47,9 +43,10 @@ namespace PersonalViewMigrationTool
 
 
         #region Control Events
+
         private void PersonalViewMigrationToolControl_Load(object sender, EventArgs e)
         {
-            ShowInfoNotification("This is a notification that can lead to XrmToolBox repository", new Uri("https://github.com/MscrmTools/XrmToolBox"));
+            ShowWarningNotification("This Plugin is pre-release, always test on a non-production system first!", null);
 
             // Loads or creates the settings for the plugin
             if (!SettingsManager.Instance.TryLoad(GetType(), out mySettings))
@@ -135,7 +132,6 @@ namespace PersonalViewMigrationTool
 
         #endregion
 
-
         private void RetrieveUsers(BackgroundWorker worked, DoWorkEventArgs args)
         {
             var sourceUsers = RetrieveUserRecords(Service);
@@ -151,20 +147,20 @@ namespace PersonalViewMigrationTool
             sourceUserAndTeamRecords = (List<Entity>)results[0];
             targetUserAndTeamRecords = (List<Entity>)results[1];
 
-            LogToFakeConsole($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
-            LogToFakeConsole($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
-            LogToFakeConsole("Checking whether those can be mapped 1:1 via their IDs...");
+            CustomLog($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
+            CustomLog($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
+            CustomLog("Checking whether those can be mapped 1:1 via their IDs...");
 
-            lblUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users retrieved";
+            tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users retrieved";
 
             var usersNotInTarget = sourceUserAndTeamRecords.Where(u => !targetUserAndTeamRecords.Any(x => x.Id == u.Id)).Select(x => x).ToList();
 
             if (usersNotInTarget.Count > 0)
             {
-                LogToFakeConsole($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system:");
+                CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system:");
                 foreach (var user in usersNotInTarget)
                 {
-                    LogToFakeConsole($"Id: {user.Id}");
+                    CustomLog($"Id: {user.Id}");
                 }
             }
             btnLoadPersonalViews.Enabled = true;
@@ -172,36 +168,83 @@ namespace PersonalViewMigrationTool
 
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
-            foreach (var user in sourceUserAndTeamRecords)
+            foreach (var sourceUserOrTeam in sourceUserAndTeamRecords)
             {
-                LogToFakeConsole($"Getting personal views of user: {user.Id}");
-                var userPersonalViews = sourceConnection.GetCrmServiceClient().RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsByUser, user.Id)));
-
-                LogToFakeConsole($"This user has {userPersonalViews.Count} personal views which could be migrated.");
-
                 var mo = new MigrationObject()
                 {
-                    OwnerId = user.Id,
+                    OwnerId = sourceUserOrTeam.Id,
                     PersonalViewsMigrationObjects = new List<PersonalViewMigrationObject>()
                 };
+
+                if (targetUserAndTeamRecords.Any(u => u.Id == sourceUserOrTeam.Id))
+                {
+                    // could be mapped via id
+                    mo.MappedOwnerId = sourceUserOrTeam.Id;
+                }
+                else
+                {
+                    if (sourceUserOrTeam.LogicalName == "systemuser")
+                    {
+                        // needs to be mapped via email
+                        if (sourceUserOrTeam.Attributes.TryGetValue("internalemailaddress", out object sourceUserEmail))
+                        {
+                            CustomLog($"Unable to map source user {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["fullname"]} via ID, will try to find a user with the same primaryEmailAddress on the target system");
+                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("internalemailaddress") && t.Attributes["internalemailaddress"].ToString() == sourceUserEmail.ToString());
+
+                            if (mappingCandidate != null)
+                            {
+                                mo.MappedOwnerId = mappingCandidate.Id;
+                            }
+                            else
+                            {
+                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} via ID or PrimaryEmailAddress. This User's views will not be migrated.");
+                            }
+                        }
+                    }
+                    else if (sourceUserOrTeam.LogicalName == "team")
+                    {
+                        // needs to be mapped via team name
+
+                        object sourceTeamname = null;
+                        // get the primaryEmailAddress from the source user with that id
+                        if (sourceUserOrTeam.Attributes.TryGetValue("name", out  sourceTeamname))
+                        {
+                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
+                            if (mappingCandidate != null)
+                            {
+                                // found a team that can be mapped 
+                                mo.MappedOwnerId = mappingCandidate.Id;
+                            }
+                            else
+                            {
+                                CustomLog($"Unable to map source team {sourceUserOrTeam.Id} via ID or name. This Team's views will not be migrated.");
+                            }
+                        }
+                    }
+                }
+
+                CustomLog($"Getting personal views of user / team: {sourceUserOrTeam.Id}");
+                var userPersonalViews = sourceConnection.GetCrmServiceClient().RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsByUser, sourceUserOrTeam.Id)));
+
+                CustomLog($"This user / team has {userPersonalViews.Count} personal views which could be migrated.");
 
                 userPersonalViews.ForEach(x => mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject { PersonalView = x }));
 
                 migrationObjects.Add(mo);
             }
 
-            LogToFakeConsole($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, owned between {migrationObjects.Count} users or teams.");
+            CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, owned between {migrationObjects.Count} users or teams.");
         }
 
         private void OnPersonalViewsRetrieved(RunWorkerCompletedEventArgs obj)
         {
             btnLoadSharing.Enabled = true;
-            lblPersonalViewsLoadedStatus.Text = $"Retrieved {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} views.";
+            tbPersonalViewsLoadedStatus.Text = $"Retrieved {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} views.";
         }
 
         private void RetrieveSharings(BackgroundWorker worker, DoWorkEventArgs args)
         {
-            LogToFakeConsole("Retrieving the Sharings for the loaded personal views..");
+            CustomLog("Retrieving the Sharings for the loaded personal views..");
 
             foreach (var migrationObject in migrationObjects)
             {
@@ -215,16 +258,91 @@ namespace PersonalViewMigrationTool
                     };
                     var accessResponse = (RetrieveSharedPrincipalsAndAccessResponse) sourceConnection.GetCrmServiceClient().ExecuteCrmOrganizationRequest(accessRequest);
 
-                    personalViewMigrationObject.Sharings.AddRange(accessResponse.PrincipalAccesses);
+                    // perform mapping if necessary
+                    foreach (var poa in accessResponse.PrincipalAccesses)
+                    {
+                        // add the non-mapped poa object
+                        personalViewMigrationObject.Sharings.Add(poa);
+
+                        // try mapping
+                        if (poa.Principal.LogicalName == "systemuser")
+                        {
+                            if (targetUserAndTeamRecords.Any(u => u.Id == poa.Principal.Id))
+                            {
+                                // could be mapped via id
+                                personalViewMigrationObject.MappedSharings.Add(poa);
+                            }
+                            else
+                            {
+                                object sourceUserEmail = null;
+                                // get the primaryEmailAddress from the source user with that id
+                                if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("internalemailaddress", out sourceUserEmail) == true)
+                                {
+                                    var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("internalemailaddress") && t.Attributes["internalemailaddress"].ToString() == sourceUserEmail.ToString());
+                                    if (mappingCandidate != null)
+                                    {
+                                        var poaCopy = poa;
+                                        poaCopy.Principal = mappingCandidate.ToEntityReference();
+
+                                        personalViewMigrationObject.MappedSharings.Add(poaCopy);
+                                    }
+                                    else
+                                    {
+                                        CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. " +
+                                            $"This Id does not exist in the target system and the user's email adress was not found in the target system for mapping. This sharing will be skipped.");
+                                    }
+                                }
+                                else
+                                {
+                                    // this source user has no email address and cant be mapped by id either
+                                    CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. This Id does not exist in the target system and the user didnt contain an email adress that could be used for mapping. This sharing will be skipped.");
+                                } 
+                            }
+                        }
+                        else if(poa.Principal.LogicalName == "team")
+                        {
+                            if (targetUserAndTeamRecords.Any(u => u.Id == poa.Principal.Id))
+                            {
+                                // could be mapped via id
+                                personalViewMigrationObject.MappedSharings.Add(poa);
+                            }
+                            else
+                            {
+                                object sourceTeamname = null;
+                                // get the primaryEmailAddress from the source user with that id
+                                if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "team").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("name", out sourceTeamname) == true)
+                                {
+                                    var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
+                                    if (mappingCandidate != null)
+                                    {
+                                        var poaCopy = poa;
+                                        poaCopy.Principal = mappingCandidate.ToEntityReference();
+
+                                        personalViewMigrationObject.MappedSharings.Add(poaCopy);
+                                    }
+                                    else
+                                    {
+                                        CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a team with the id {poa.Principal.Id}. " +
+                                            $"This Id does not exist in the target system and the teams's name was not found in the target system for mapping. This sharing will be skipped.");
+                                    }
+                                }
+                                else
+                                {
+                                    // this source user has no email address and cant be mapped by id either
+                                    CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a team with the id {poa.Principal.Id}. This Id does not exist in the target system and the team didnt contain a name adress that could be used for mapping. This sharing will be skipped.");
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            LogToFakeConsole($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects.");
+            CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects.");
         }
 
         private void OnSharingRetrieved(RunWorkerCompletedEventArgs obj)
         {
-            lblSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
+            tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
             btnStartMigration.Enabled = true;
         }
 
@@ -235,11 +353,13 @@ namespace PersonalViewMigrationTool
             btnLoadSharing.Enabled = false;
             btnLoadUsers.Enabled = false;
             btnStartMigration.Enabled = false;
+
+            tbMigrationResult.Text = "Migration completed.";
         }
 
         private void Migrate(BackgroundWorker arg1, DoWorkEventArgs arg2)
         {
-            LogToFakeConsole("Starting migration..");
+            CustomLog("Starting migration..");
 
             int currentUserCount = 0;
             int totalUserCount = migrationObjects.Count;
@@ -250,29 +370,34 @@ namespace PersonalViewMigrationTool
             int currentPoACount = 0;
             int totalPoACount = migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count));
 
-            foreach (var migrationObject in migrationObjects)
+            foreach (var migrationObject in migrationObjects.Where(x => x.MappedOwnerId != null && x.PersonalViewsMigrationObjects.Any())) 
             {
                 currentUserCount++;
                 // impersonate the owner of this batch
-                LogToFakeConsole($"Impersonating User with ID: {migrationObject.OwnerId}");
+                CustomLog($"Migrating User with ID: {migrationObject.OwnerId}..");
                 var impersonatedConnection = targetConnection.GetCrmServiceClient();
-                impersonatedConnection.CallerId = migrationObject.OwnerId;
+                impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
                 // whoAmICheck
                 var whoAmIResponse = impersonatedConnection.Execute(new WhoAmIRequest()) as WhoAmIResponse;
-                if (whoAmIResponse.UserId != migrationObject.OwnerId)
+                if (whoAmIResponse.UserId != migrationObject.MappedOwnerId)
                 {
-                    LogToFakeConsole("Unable to Impersonate the user! Will skip the views owned by that user.");
-                    return;
+                    CustomLog("Unable to Impersonate the user! Will skip the views owned by that user.");
+                    continue;
                 }
 
-                foreach (var personalView in migrationObject.PersonalViewsMigrationObjects)
+                foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                 {
-                    impersonatedConnection.Upsert(personalView.PersonalView);
+                    var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
+                   "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
+
+                    upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
+
+                    impersonatedConnection.Upsert(upsertRecord);
                     currentViewCount++;
 
                     // migrate all sharings
-                    foreach (var poa in personalView.Sharings)
+                    foreach (var poa in personalViewMigrationObject.MappedSharings)
                     {
                         impersonatedConnection.Execute(new GrantAccessRequest()
                         {
@@ -281,14 +406,14 @@ namespace PersonalViewMigrationTool
                                 AccessMask = poa.AccessMask,
                                 Principal = poa.Principal
                             },
-                            Target = personalView.PersonalView.ToEntityReference()
+                            Target = upsertRecord.ToEntityReference() // note this only works because the ID of the record is the same, better to use the id of the newly created record instead.
                         });
                         currentPoACount++;
                     }
-                    LogToFakeConsole($"Migrated User {currentUserCount} / {totalUserCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
+                    CustomLog($"Migrated User {currentUserCount} / {totalUserCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                 }
             }
-            LogToFakeConsole("Migration completed");
+            CustomLog("Migration completed");
         }
 
 
@@ -304,11 +429,11 @@ namespace PersonalViewMigrationTool
                 // this is the source connection
                 sourceConnection = detail;
 
-                lblConnectedSourceOrg.Text = detail.ConnectionName;
-                LogToFakeConsole($"Connected Source to: {detail.ConnectionName}");
+                tbConnectedSourceOrg.Text = detail.ConnectionName;
+                CustomLog($"Connected Source to: {detail.ConnectionName}");
 
                 var whoAmIResponse = detail.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
-                LogToFakeConsole($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
+                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
 
                 if (mySettings != null && detail != null)
                 {
@@ -326,18 +451,17 @@ namespace PersonalViewMigrationTool
             if (e.Action == NotifyCollectionChangedAction.Add)
             {
                 targetConnection = AdditionalConnectionDetails[0];
-                lblConnectedTargetOrg.Text = targetConnection.ConnectionName;
+                tbConnectedTargetOrg.Text = targetConnection.ConnectionName;
 
                 LogInfo("Connection has changed to: {0}", targetConnection.WebApplicationUrl);
 
-                LogToFakeConsole($"Connected Target to: {targetConnection.ConnectionName}");
+                CustomLog($"Connected Target to: {targetConnection.ConnectionName}");
 
                 var whoAmIResponse = targetConnection.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
-                LogToFakeConsole($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
+                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
                 btnLoadUsers.Enabled = true;
             }
         }
-
 
 
         private List<Entity> RetrieveUserRecords(IOrganizationService service)
@@ -379,11 +503,12 @@ namespace PersonalViewMigrationTool
 
         delegate void UpdateLogWindowDelegate(string msg);
 
-        private void LogToFakeConsole(string text)
+        private void CustomLog(string text)
         {
+            LogInfo(text);
             if (lbDebugOutput.InvokeRequired)
             {
-                UpdateLogWindowDelegate update = new UpdateLogWindowDelegate(LogToFakeConsole);
+                UpdateLogWindowDelegate update = new UpdateLogWindowDelegate(CustomLog);
                 lbDebugOutput.Invoke(update, text);
             }
             else
@@ -399,12 +524,23 @@ namespace PersonalViewMigrationTool
             }
         }
 
+        private void openLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenLogFile();
+        }
 
+        private void openLogFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Process.Start(Path.GetDirectoryName(LogFilePath));
+        }
     }
 
     internal class MigrationObject
     {
         internal Guid OwnerId { get; set; }
+
+        internal Guid MappedOwnerId { get; set; }
+
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
     }
 
@@ -413,6 +549,7 @@ namespace PersonalViewMigrationTool
         internal Entity PersonalView { get; set; }
 
         internal List<PrincipalAccess> Sharings { get; set; } = new List<PrincipalAccess>();
-    }
 
+        internal List<PrincipalAccess> MappedSharings { get; set; } = new List<PrincipalAccess>();
+    }
 }
