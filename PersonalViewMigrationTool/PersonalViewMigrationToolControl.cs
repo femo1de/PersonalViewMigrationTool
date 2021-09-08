@@ -10,11 +10,13 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using XrmToolBox.Extensibility;
+using XrmToolBox.Extensibility.Interfaces;
 
 namespace PersonalViewMigrationTool
 {
-    public partial class PersonalViewMigrationToolControl : MultipleConnectionsPluginControlBase
+    public partial class PersonalViewMigrationToolControl : MultipleConnectionsPluginControlBase, IGitHubPlugin, IAboutPlugin, IHelpPlugin
     {
         private Settings mySettings;
 
@@ -35,6 +37,28 @@ namespace PersonalViewMigrationTool
                         </filter>
                       </entity>
                     </fetch>";
+
+        #region IHelpPluginImplementation
+
+        public string HelpUrl => "https://github.com/femo1de/PersonalViewMigrationTool/wiki";
+
+        #endregion
+
+        #region GitHub implementation
+
+        public string RepositoryName => "PersonalViewMigrationTool";
+
+        public string UserName => "femo1de";
+
+        #endregion
+
+        #region IAboutPlugin implementation
+        public void ShowAboutDialog()
+        {
+            MessageBox.Show("This is an early alpha. Expect Bugs and always test on a non production system first. Inspect the Code on GitHub if you are not sure");
+        }
+
+        #endregion
 
         public PersonalViewMigrationToolControl()
         {
@@ -92,6 +116,14 @@ namespace PersonalViewMigrationTool
         {
             AddAdditionalOrganization();
         }
+        private void btnConnectSource_Click(object sender, EventArgs e)
+        {
+            RaiseRequestConnectionEvent(new RequestConnectionEventArgs()
+            {
+                ActionName = string.Empty,
+                Control = this
+            });
+        }
 
         private void btnLoadPersonalViews_Click(object sender, EventArgs e)
         {
@@ -129,10 +161,85 @@ namespace PersonalViewMigrationTool
             });
         }
 
+        private void openLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenLogFile();
+        }
+
+        private void openLogFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Process.Start(Path.GetDirectoryName(LogFilePath));
+        }
+
+        private void tsbHelp_Click(object sender, EventArgs e)
+        {
+            Process.Start(HelpUrl);
+        }
+
+        private void tsbFeedback_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/femo1de/PersonalViewMigrationTool/issues/new");
+        }
+
         #endregion
+
+        #region Business Logic
+
+        /// <summary>
+        /// This event occurs when the connection has been updated in XrmToolBox
+        /// </summary>
+        public override void UpdateConnection(IOrganizationService newService, ConnectionDetail detail, string actionName, object parameter)
+        {
+            base.UpdateConnection(newService, detail, actionName, parameter);
+
+            if (actionName != "AdditionalOrganization")
+            {
+                // this is the source connection
+                sourceConnection = detail;
+
+                tbConnectedSourceOrg.Text = detail.ConnectionName;
+                CustomLog($"Connected Source to: {detail.ConnectionName}");
+
+                var whoAmIResponse = detail.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
+                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
+
+                if (mySettings != null && detail != null)
+                {
+                    mySettings.LastUsedOrganizationWebappUrl = detail.WebApplicationUrl;
+                    LogInfo("Connection has changed to: {0}", detail.WebApplicationUrl);
+                }
+            }
+        }
+
+        /// <summary>
+        /// This event occurs when the target connection has been updated in XrmToolBox
+        /// </summary>
+        protected override void ConnectionDetailsUpdated(NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                targetConnection = AdditionalConnectionDetails[0];
+                tbConnectedTargetOrg.Text = targetConnection.ConnectionName;
+
+                LogInfo("Connection has changed to: {0}", targetConnection.WebApplicationUrl);
+
+                CustomLog($"Connected Target to: {targetConnection.ConnectionName}");
+
+                var whoAmIResponse = targetConnection.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
+                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
+                btnLoadUsers.Enabled = true;
+            }
+        }
 
         private void RetrieveUsers(BackgroundWorker worked, DoWorkEventArgs args)
         {
+            if (Service == null)
+            {
+                MessageBox.Show("Source connection has not been set. Please connect a source environment.", "Please connect source system", MessageBoxButton.OK, MessageBoxImage.Stop);
+                args.Cancel = true;
+                return;
+            }
+
             var sourceUsers = RetrieveUserRecords(Service);
             var destinationUsers = RetrieveUserRecords(AdditionalConnectionDetails[0].GetCrmServiceClient());
 
@@ -141,6 +248,11 @@ namespace PersonalViewMigrationTool
 
         private void OnUsersRetrieved(RunWorkerCompletedEventArgs obj)
         {
+            if (obj.Cancelled)
+            {
+                return;
+            }
+
             var results = (object[])obj.Result;
 
             sourceUserAndTeamRecords = (List<Entity>)results[0];
@@ -414,53 +526,6 @@ namespace PersonalViewMigrationTool
         }
 
 
-        /// <summary>
-        /// This event occurs when the connection has been updated in XrmToolBox
-        /// </summary>
-        public override void UpdateConnection(IOrganizationService newService, ConnectionDetail detail, string actionName, object parameter)
-        {
-            base.UpdateConnection(newService, detail, actionName, parameter);
-
-            if (actionName != "AdditionalOrganization")
-            {
-                // this is the source connection
-                sourceConnection = detail;
-
-                tbConnectedSourceOrg.Text = detail.ConnectionName;
-                CustomLog($"Connected Source to: {detail.ConnectionName}");
-
-                var whoAmIResponse = detail.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
-                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
-
-                if (mySettings != null && detail != null)
-                {
-                    mySettings.LastUsedOrganizationWebappUrl = detail.WebApplicationUrl;
-                    LogInfo("Connection has changed to: {0}", detail.WebApplicationUrl);
-                }
-            }
-        }
-
-        /// <summary>
-        /// This event occurs when the target connection has been updated in XrmToolBox
-        /// </summary>
-        protected override void ConnectionDetailsUpdated(NotifyCollectionChangedEventArgs e)
-        {
-            if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                targetConnection = AdditionalConnectionDetails[0];
-                tbConnectedTargetOrg.Text = targetConnection.ConnectionName;
-
-                LogInfo("Connection has changed to: {0}", targetConnection.WebApplicationUrl);
-
-                CustomLog($"Connected Target to: {targetConnection.ConnectionName}");
-
-                var whoAmIResponse = targetConnection.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
-                CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
-                btnLoadUsers.Enabled = true;
-            }
-        }
-
-
         private List<Entity> RetrieveUserRecords(IOrganizationService service)
         {
             var usersQuery = new QueryExpression("systemuser")
@@ -498,6 +563,10 @@ namespace PersonalViewMigrationTool
             return allRecords;
         }
 
+        #endregion
+
+        #region Helpers
+
         delegate void UpdateLogWindowDelegate(string msg);
 
         private void CustomLog(string text)
@@ -521,14 +590,12 @@ namespace PersonalViewMigrationTool
             LogInfo(text);
         }
 
-        private void openLogToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenLogFile();
-        }
 
-        private void openLogFolderToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Process.Start(Path.GetDirectoryName(LogFilePath));
-        }
+
+
+
+        #endregion
+
+
     }
 }

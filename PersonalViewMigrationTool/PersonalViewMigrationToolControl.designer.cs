@@ -29,31 +29,34 @@ namespace PersonalViewMigrationTool
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PersonalViewMigrationToolControl));
             this.toolStripMenu = new System.Windows.Forms.ToolStrip();
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.tsbHelp = new System.Windows.Forms.ToolStripButton();
+            this.tsbFeedback = new System.Windows.Forms.ToolStripButton();
             this.dropDownButtonLogs = new System.Windows.Forms.ToolStripDropDownButton();
             this.openLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openLogFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.btnConnectTargetOrg = new System.Windows.Forms.Button();
-            this.lblSourceOrgHint = new System.Windows.Forms.Label();
             this.btnLoadUsers = new System.Windows.Forms.Button();
             this.lbDebugOutput = new System.Windows.Forms.ListBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.btnConnectSource = new System.Windows.Forms.Button();
+            this.tbMigrationResult = new System.Windows.Forms.TextBox();
+            this.tbSharingRetrievedStatus = new System.Windows.Forms.TextBox();
+            this.tbPersonalViewsLoadedStatus = new System.Windows.Forms.TextBox();
+            this.tbUsersLoadStatus = new System.Windows.Forms.TextBox();
+            this.tbConnectedTargetOrg = new System.Windows.Forms.TextBox();
+            this.tbConnectedSourceOrg = new System.Windows.Forms.TextBox();
             this.btnStartMigration = new System.Windows.Forms.Button();
             this.btnLoadSharing = new System.Windows.Forms.Button();
             this.btnLoadPersonalViews = new System.Windows.Forms.Button();
-            this.tbConnectedSourceOrg = new System.Windows.Forms.TextBox();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.tbConnectedTargetOrg = new System.Windows.Forms.TextBox();
-            this.tbUsersLoadStatus = new System.Windows.Forms.TextBox();
-            this.tbPersonalViewsLoadedStatus = new System.Windows.Forms.TextBox();
-            this.tbSharingRetrievedStatus = new System.Windows.Forms.TextBox();
-            this.tbMigrationResult = new System.Windows.Forms.TextBox();
             this.panel2 = new System.Windows.Forms.Panel();
             this.lblWarning = new System.Windows.Forms.Label();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -66,6 +69,10 @@ namespace PersonalViewMigrationTool
             this.toolStripMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsbClose,
             this.tssSeparator1,
+            this.tsbHelp,
+            this.toolStripSeparator1,
+            this.tsbFeedback,
+            this.toolStripSeparator2,
             this.dropDownButtonLogs});
             this.toolStripMenu.Location = new System.Drawing.Point(0, 0);
             this.toolStripMenu.Name = "toolStripMenu";
@@ -77,14 +84,34 @@ namespace PersonalViewMigrationTool
             // 
             this.tsbClose.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.tsbClose.Name = "tsbClose";
-            this.tsbClose.Size = new System.Drawing.Size(86, 22);
-            this.tsbClose.Text = "Close this tool";
+            this.tsbClose.Size = new System.Drawing.Size(40, 22);
+            this.tsbClose.Text = "Close";
             this.tsbClose.Click += new System.EventHandler(this.tsbClose_Click);
             // 
             // tssSeparator1
             // 
             this.tssSeparator1.Name = "tssSeparator1";
             this.tssSeparator1.Size = new System.Drawing.Size(6, 25);
+            // 
+            // tsbHelp
+            // 
+            this.tsbHelp.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbHelp.Image = ((System.Drawing.Image)(resources.GetObject("tsbHelp.Image")));
+            this.tsbHelp.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbHelp.Name = "tsbHelp";
+            this.tsbHelp.Size = new System.Drawing.Size(36, 22);
+            this.tsbHelp.Text = "Help";
+            this.tsbHelp.Click += new System.EventHandler(this.tsbHelp_Click);
+            // 
+            // tsbFeedback
+            // 
+            this.tsbFeedback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbFeedback.Image = ((System.Drawing.Image)(resources.GetObject("tsbFeedback.Image")));
+            this.tsbFeedback.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbFeedback.Name = "tsbFeedback";
+            this.tsbFeedback.Size = new System.Drawing.Size(79, 22);
+            this.tsbFeedback.Text = "Report a Bug";
+            this.tsbFeedback.Click += new System.EventHandler(this.tsbFeedback_Click);
             // 
             // dropDownButtonLogs
             // 
@@ -113,7 +140,7 @@ namespace PersonalViewMigrationTool
             // 
             // btnConnectTargetOrg
             // 
-            this.btnConnectTargetOrg.Location = new System.Drawing.Point(23, 54);
+            this.btnConnectTargetOrg.Location = new System.Drawing.Point(23, 60);
             this.btnConnectTargetOrg.Name = "btnConnectTargetOrg";
             this.btnConnectTargetOrg.Size = new System.Drawing.Size(121, 23);
             this.btnConnectTargetOrg.TabIndex = 5;
@@ -121,19 +148,10 @@ namespace PersonalViewMigrationTool
             this.btnConnectTargetOrg.UseVisualStyleBackColor = true;
             this.btnConnectTargetOrg.Click += new System.EventHandler(this.btnConnectTargetOrg_Click);
             // 
-            // lblSourceOrgHint
-            // 
-            this.lblSourceOrgHint.AutoSize = true;
-            this.lblSourceOrgHint.Location = new System.Drawing.Point(30, 20);
-            this.lblSourceOrgHint.Name = "lblSourceOrgHint";
-            this.lblSourceOrgHint.Size = new System.Drawing.Size(44, 13);
-            this.lblSourceOrgHint.TabIndex = 9;
-            this.lblSourceOrgHint.Text = "Source:";
-            // 
             // btnLoadUsers
             // 
             this.btnLoadUsers.Enabled = false;
-            this.btnLoadUsers.Location = new System.Drawing.Point(23, 100);
+            this.btnLoadUsers.Location = new System.Drawing.Point(23, 103);
             this.btnLoadUsers.Name = "btnLoadUsers";
             this.btnLoadUsers.Size = new System.Drawing.Size(127, 23);
             this.btnLoadUsers.TabIndex = 10;
@@ -184,6 +202,7 @@ namespace PersonalViewMigrationTool
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.btnConnectSource);
             this.panel1.Controls.Add(this.tbMigrationResult);
             this.panel1.Controls.Add(this.tbSharingRetrievedStatus);
             this.panel1.Controls.Add(this.tbPersonalViewsLoadedStatus);
@@ -194,7 +213,6 @@ namespace PersonalViewMigrationTool
             this.panel1.Controls.Add(this.btnLoadSharing);
             this.panel1.Controls.Add(this.btnLoadPersonalViews);
             this.panel1.Controls.Add(this.btnLoadUsers);
-            this.panel1.Controls.Add(this.lblSourceOrgHint);
             this.panel1.Controls.Add(this.btnConnectTargetOrg);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(6, 6);
@@ -202,10 +220,74 @@ namespace PersonalViewMigrationTool
             this.panel1.Size = new System.Drawing.Size(370, 367);
             this.panel1.TabIndex = 12;
             // 
+            // btnConnectSource
+            // 
+            this.btnConnectSource.Location = new System.Drawing.Point(23, 17);
+            this.btnConnectSource.Name = "btnConnectSource";
+            this.btnConnectSource.Size = new System.Drawing.Size(121, 23);
+            this.btnConnectSource.TabIndex = 23;
+            this.btnConnectSource.Text = "Connect Source";
+            this.btnConnectSource.UseVisualStyleBackColor = true;
+            this.btnConnectSource.Click += new System.EventHandler(this.btnConnectSource_Click);
+            // 
+            // tbMigrationResult
+            // 
+            this.tbMigrationResult.Enabled = false;
+            this.tbMigrationResult.Location = new System.Drawing.Point(3, 334);
+            this.tbMigrationResult.Name = "tbMigrationResult";
+            this.tbMigrationResult.Size = new System.Drawing.Size(364, 20);
+            this.tbMigrationResult.TabIndex = 22;
+            this.tbMigrationResult.Text = "Migration not completed";
+            // 
+            // tbSharingRetrievedStatus
+            // 
+            this.tbSharingRetrievedStatus.Enabled = false;
+            this.tbSharingRetrievedStatus.Location = new System.Drawing.Point(156, 192);
+            this.tbSharingRetrievedStatus.Name = "tbSharingRetrievedStatus";
+            this.tbSharingRetrievedStatus.Size = new System.Drawing.Size(166, 20);
+            this.tbSharingRetrievedStatus.TabIndex = 21;
+            this.tbSharingRetrievedStatus.Text = "Shared Permissions not loaded";
+            // 
+            // tbPersonalViewsLoadedStatus
+            // 
+            this.tbPersonalViewsLoadedStatus.Enabled = false;
+            this.tbPersonalViewsLoadedStatus.Location = new System.Drawing.Point(156, 149);
+            this.tbPersonalViewsLoadedStatus.Name = "tbPersonalViewsLoadedStatus";
+            this.tbPersonalViewsLoadedStatus.Size = new System.Drawing.Size(166, 20);
+            this.tbPersonalViewsLoadedStatus.TabIndex = 20;
+            this.tbPersonalViewsLoadedStatus.Text = "Personal Views not loaded";
+            // 
+            // tbUsersLoadStatus
+            // 
+            this.tbUsersLoadStatus.Enabled = false;
+            this.tbUsersLoadStatus.Location = new System.Drawing.Point(156, 106);
+            this.tbUsersLoadStatus.Name = "tbUsersLoadStatus";
+            this.tbUsersLoadStatus.Size = new System.Drawing.Size(166, 20);
+            this.tbUsersLoadStatus.TabIndex = 19;
+            this.tbUsersLoadStatus.Text = "Users not loaded";
+            // 
+            // tbConnectedTargetOrg
+            // 
+            this.tbConnectedTargetOrg.Enabled = false;
+            this.tbConnectedTargetOrg.Location = new System.Drawing.Point(156, 63);
+            this.tbConnectedTargetOrg.Name = "tbConnectedTargetOrg";
+            this.tbConnectedTargetOrg.Size = new System.Drawing.Size(166, 20);
+            this.tbConnectedTargetOrg.TabIndex = 18;
+            this.tbConnectedTargetOrg.Text = "Target not connected";
+            // 
+            // tbConnectedSourceOrg
+            // 
+            this.tbConnectedSourceOrg.Enabled = false;
+            this.tbConnectedSourceOrg.Location = new System.Drawing.Point(156, 20);
+            this.tbConnectedSourceOrg.Name = "tbConnectedSourceOrg";
+            this.tbConnectedSourceOrg.Size = new System.Drawing.Size(166, 20);
+            this.tbConnectedSourceOrg.TabIndex = 17;
+            this.tbConnectedSourceOrg.Text = "Source not connected";
+            // 
             // btnStartMigration
             // 
             this.btnStartMigration.Enabled = false;
-            this.btnStartMigration.Location = new System.Drawing.Point(23, 242);
+            this.btnStartMigration.Location = new System.Drawing.Point(90, 240);
             this.btnStartMigration.Name = "btnStartMigration";
             this.btnStartMigration.Size = new System.Drawing.Size(127, 23);
             this.btnStartMigration.TabIndex = 16;
@@ -216,7 +298,7 @@ namespace PersonalViewMigrationTool
             // btnLoadSharing
             // 
             this.btnLoadSharing.Enabled = false;
-            this.btnLoadSharing.Location = new System.Drawing.Point(23, 192);
+            this.btnLoadSharing.Location = new System.Drawing.Point(23, 189);
             this.btnLoadSharing.Name = "btnLoadSharing";
             this.btnLoadSharing.Size = new System.Drawing.Size(127, 23);
             this.btnLoadSharing.TabIndex = 14;
@@ -235,65 +317,6 @@ namespace PersonalViewMigrationTool
             this.btnLoadPersonalViews.UseVisualStyleBackColor = true;
             this.btnLoadPersonalViews.Click += new System.EventHandler(this.btnLoadPersonalViews_Click);
             // 
-            // tbConnectedSourceOrg
-            // 
-            this.tbConnectedSourceOrg.Enabled = false;
-            this.tbConnectedSourceOrg.Location = new System.Drawing.Point(156, 17);
-            this.tbConnectedSourceOrg.Name = "tbConnectedSourceOrg";
-            this.tbConnectedSourceOrg.Size = new System.Drawing.Size(166, 20);
-            this.tbConnectedSourceOrg.TabIndex = 17;
-            this.tbConnectedSourceOrg.Text = "Source not connected";
-            // 
-            // contextMenuStrip1
-            // 
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
-            // 
-            // tbConnectedTargetOrg
-            // 
-            this.tbConnectedTargetOrg.Enabled = false;
-            this.tbConnectedTargetOrg.Location = new System.Drawing.Point(156, 57);
-            this.tbConnectedTargetOrg.Name = "tbConnectedTargetOrg";
-            this.tbConnectedTargetOrg.Size = new System.Drawing.Size(166, 20);
-            this.tbConnectedTargetOrg.TabIndex = 18;
-            this.tbConnectedTargetOrg.Text = "Target not connected";
-            // 
-            // tbUsersLoadStatus
-            // 
-            this.tbUsersLoadStatus.Enabled = false;
-            this.tbUsersLoadStatus.Location = new System.Drawing.Point(156, 103);
-            this.tbUsersLoadStatus.Name = "tbUsersLoadStatus";
-            this.tbUsersLoadStatus.Size = new System.Drawing.Size(166, 20);
-            this.tbUsersLoadStatus.TabIndex = 19;
-            this.tbUsersLoadStatus.Text = "Users not loaded";
-            // 
-            // tbPersonalViewsLoadedStatus
-            // 
-            this.tbPersonalViewsLoadedStatus.Enabled = false;
-            this.tbPersonalViewsLoadedStatus.Location = new System.Drawing.Point(156, 148);
-            this.tbPersonalViewsLoadedStatus.Name = "tbPersonalViewsLoadedStatus";
-            this.tbPersonalViewsLoadedStatus.Size = new System.Drawing.Size(166, 20);
-            this.tbPersonalViewsLoadedStatus.TabIndex = 20;
-            this.tbPersonalViewsLoadedStatus.Text = "Personal Views not loaded";
-            // 
-            // tbSharingRetrievedStatus
-            // 
-            this.tbSharingRetrievedStatus.Enabled = false;
-            this.tbSharingRetrievedStatus.Location = new System.Drawing.Point(156, 195);
-            this.tbSharingRetrievedStatus.Name = "tbSharingRetrievedStatus";
-            this.tbSharingRetrievedStatus.Size = new System.Drawing.Size(166, 20);
-            this.tbSharingRetrievedStatus.TabIndex = 21;
-            this.tbSharingRetrievedStatus.Text = "Shared Permissions not loaded";
-            // 
-            // tbMigrationResult
-            // 
-            this.tbMigrationResult.Enabled = false;
-            this.tbMigrationResult.Location = new System.Drawing.Point(3, 334);
-            this.tbMigrationResult.Name = "tbMigrationResult";
-            this.tbMigrationResult.Size = new System.Drawing.Size(364, 20);
-            this.tbMigrationResult.TabIndex = 22;
-            this.tbMigrationResult.Text = "Migration not completed";
-            // 
             // panel2
             // 
             this.panel2.Controls.Add(this.lblWarning);
@@ -307,12 +330,22 @@ namespace PersonalViewMigrationTool
             // 
             this.lblWarning.AutoSize = true;
             this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblWarning.Location = new System.Drawing.Point(0, 331);
+            this.lblWarning.Location = new System.Drawing.Point(3, 112);
             this.lblWarning.Name = "lblWarning";
             this.lblWarning.Size = new System.Drawing.Size(331, 26);
             this.lblWarning.TabIndex = 0;
             this.lblWarning.Text = "Attention: This is an early PoC. \r\nUse at your own risk and always test on a non-" +
     "production system first\r\n";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -340,7 +373,6 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.ToolStripButton tsbClose;
         private System.Windows.Forms.ToolStripSeparator tssSeparator1;
         private System.Windows.Forms.Button btnConnectTargetOrg;
-        private System.Windows.Forms.Label lblSourceOrgHint;
         private System.Windows.Forms.Button btnLoadUsers;
         private System.Windows.Forms.ListBox lbDebugOutput;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
@@ -355,10 +387,14 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.TextBox tbUsersLoadStatus;
         private System.Windows.Forms.TextBox tbConnectedTargetOrg;
         private System.Windows.Forms.TextBox tbConnectedSourceOrg;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TextBox tbMigrationResult;
         private System.Windows.Forms.TextBox tbSharingRetrievedStatus;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Label lblWarning;
+        private System.Windows.Forms.Button btnConnectSource;
+        private System.Windows.Forms.ToolStripButton tsbHelp;
+        private System.Windows.Forms.ToolStripButton tsbFeedback;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
     }
 }

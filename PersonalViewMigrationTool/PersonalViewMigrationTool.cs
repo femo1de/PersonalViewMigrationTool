@@ -23,6 +23,7 @@ namespace PersonalViewMigrationTool
         ExportMetadata("SecondaryFontColor", "Gray")]
     public class PersonalViewMigrationTool : PluginBase
     {
+
         public override IXrmToolBoxPluginControl GetControl()
         {
             return new PersonalViewMigrationToolControl();
