@@ -467,7 +467,7 @@ namespace PersonalViewMigrationTool
         {
             var usersQuery = new QueryExpression("systemuser")
             {
-                ColumnSet = new ColumnSet("fullname"),
+                ColumnSet = new ColumnSet("fullname", "domainname", "internalemailaddress"),
                 PageInfo = new PagingInfo()
                 {
                     Count = 5000,
