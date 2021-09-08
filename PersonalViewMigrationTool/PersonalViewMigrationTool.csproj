@@ -204,6 +204,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions.cs" />
+    <Compile Include="MigrationObject.cs" />
+    <Compile Include="PersonalViewMigrationObject.cs" />
     <Compile Include="PersonalViewMigrationTool.cs" />
     <Compile Include="PersonalViewMigrationToolControl.cs">
       <SubType>UserControl</SubType>

@@ -41,7 +41,6 @@ namespace PersonalViewMigrationTool
             InitializeComponent();
         }
 
-
         #region Control Events
 
         private void PersonalViewMigrationToolControl_Load(object sender, EventArgs e)
@@ -185,11 +184,11 @@ namespace PersonalViewMigrationTool
                 {
                     if (sourceUserOrTeam.LogicalName == "systemuser")
                     {
-                        // needs to be mapped via email
-                        if (sourceUserOrTeam.Attributes.TryGetValue("internalemailaddress", out object sourceUserEmail))
+                        // needs to be mapped via domainname
+                        if (sourceUserOrTeam.Attributes.TryGetValue("domainname", out object sourceUserDomainName))
                         {
-                            CustomLog($"Unable to map source user {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["fullname"]} via ID, will try to find a user with the same primaryEmailAddress on the target system");
-                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("internalemailaddress") && t.Attributes["internalemailaddress"].ToString() == sourceUserEmail.ToString());
+                            CustomLog($"Unable to map source user {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["fullname"]} via ID, will try to find a user with the same domainname on the target system");
+                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("domainname") && t.Attributes["domainname"].ToString() == sourceUserDomainName.ToString());
 
                             if (mappingCandidate != null)
                             {
@@ -197,7 +196,7 @@ namespace PersonalViewMigrationTool
                             }
                             else
                             {
-                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} via ID or PrimaryEmailAddress. This User's views will not be migrated.");
+                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} via ID or domainname. This User's views will not be migrated.");
                             }
                         }
                     }
@@ -206,7 +205,7 @@ namespace PersonalViewMigrationTool
                         // needs to be mapped via team name
 
                         object sourceTeamname = null;
-                        // get the primaryEmailAddress from the source user with that id
+                        // get the name from the source team with that id
                         if (sourceUserOrTeam.Attributes.TryGetValue("name", out  sourceTeamname))
                         {
                             var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
@@ -274,11 +273,11 @@ namespace PersonalViewMigrationTool
                             }
                             else
                             {
-                                object sourceUserEmail = null;
-                                // get the primaryEmailAddress from the source user with that id
-                                if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("internalemailaddress", out sourceUserEmail) == true)
+                                object sourceDomainName = null;
+                                // get the domainname from the source user with that id
+                                if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("domainname", out sourceDomainName) == true)
                                 {
-                                    var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("internalemailaddress") && t.Attributes["internalemailaddress"].ToString() == sourceUserEmail.ToString());
+                                    var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("domainname") && t.Attributes["domainname"].ToString() == sourceDomainName.ToString());
                                     if (mappingCandidate != null)
                                     {
                                         var poaCopy = poa;
@@ -289,13 +288,13 @@ namespace PersonalViewMigrationTool
                                     else
                                     {
                                         CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. " +
-                                            $"This Id does not exist in the target system and the user's email adress was not found in the target system for mapping. This sharing will be skipped.");
+                                            $"This Id does not exist in the target system and the user's domainname adress was not found in the target system for mapping. This sharing will be skipped.");
                                     }
                                 }
                                 else
                                 {
-                                    // this source user has no email address and cant be mapped by id either
-                                    CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. This Id does not exist in the target system and the user didnt contain an email adress that could be used for mapping. This sharing will be skipped.");
+                                    // this source user has no domainname address and cant be mapped by id either
+                                    CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. This Id does not exist in the target system and the user didnt contain an domainname adress that could be used for mapping. This sharing will be skipped.");
                                 } 
                             }
                         }
@@ -309,7 +308,7 @@ namespace PersonalViewMigrationTool
                             else
                             {
                                 object sourceTeamname = null;
-                                // get the primaryEmailAddress from the source user with that id
+                                // get the name from the source team with that id
                                 if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "team").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("name", out sourceTeamname) == true)
                                 {
                                     var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
@@ -328,7 +327,7 @@ namespace PersonalViewMigrationTool
                                 }
                                 else
                                 {
-                                    // this source user has no email address and cant be mapped by id either
+                                    // this source team has no name  and cant be mapped by id either
                                     CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a team with the id {poa.Principal.Id}. This Id does not exist in the target system and the team didnt contain a name adress that could be used for mapping. This sharing will be skipped.");
                                 }
                             }
@@ -410,7 +409,7 @@ namespace PersonalViewMigrationTool
                         });
                         currentPoACount++;
                     }
-                    CustomLog($"Migrated User {currentUserCount} / {totalUserCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
+                    CustomLog($"Migrated User / Team {currentUserCount} / {totalUserCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                 }
             }
             CustomLog("Migration completed");
@@ -506,6 +505,7 @@ namespace PersonalViewMigrationTool
         private void CustomLog(string text)
         {
             LogInfo(text);
+
             if (lbDebugOutput.InvokeRequired)
             {
                 UpdateLogWindowDelegate update = new UpdateLogWindowDelegate(CustomLog);
@@ -533,23 +533,5 @@ namespace PersonalViewMigrationTool
         {
             Process.Start(Path.GetDirectoryName(LogFilePath));
         }
-    }
-
-    internal class MigrationObject
-    {
-        internal Guid OwnerId { get; set; }
-
-        internal Guid MappedOwnerId { get; set; }
-
-        internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
-    }
-
-    internal class PersonalViewMigrationObject
-    {
-        internal Entity PersonalView { get; set; }
-
-        internal List<PrincipalAccess> Sharings { get; set; } = new List<PrincipalAccess>();
-
-        internal List<PrincipalAccess> MappedSharings { get; set; } = new List<PrincipalAccess>();
     }
 }
