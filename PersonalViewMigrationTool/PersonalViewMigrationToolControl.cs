@@ -156,11 +156,7 @@ namespace PersonalViewMigrationTool
 
             if (usersNotInTarget.Count > 0)
             {
-                CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system:");
-                foreach (var user in usersNotInTarget)
-                {
-                    CustomLog($"Id: {user.Id}");
-                }
+                CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system.");
             }
             btnLoadPersonalViews.Enabled = true;
         }
@@ -193,10 +189,11 @@ namespace PersonalViewMigrationTool
                             if (mappingCandidate != null)
                             {
                                 mo.MappedOwnerId = mappingCandidate.Id;
+                                CustomLog($"Mapped user via Domain Name: {sourceUserDomainName}.");
                             }
                             else
                             {
-                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} via ID or domainname. This User's views will not be migrated.");
+                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} - {sourceUserDomainName} via ID or domainname. This User's views will not be migrated.");
                             }
                         }
                     }
@@ -213,10 +210,11 @@ namespace PersonalViewMigrationTool
                             {
                                 // found a team that can be mapped 
                                 mo.MappedOwnerId = mappingCandidate.Id;
+                                CustomLog($"Mapped team via Domain Name: {sourceTeamname}.");
                             }
                             else
                             {
-                                CustomLog($"Unable to map source team {sourceUserOrTeam.Id} via ID or name. This Team's views will not be migrated.");
+                                CustomLog($"Unable to map source team {sourceUserOrTeam.Id} - {sourceTeamname} via ID or name. This Team's views will not be migrated.");
                             }
                         }
                     }
@@ -345,23 +343,12 @@ namespace PersonalViewMigrationTool
             btnStartMigration.Enabled = true;
         }
 
-        private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
-        {
-            btnConnectTargetOrg.Enabled = false;
-            btnLoadPersonalViews.Enabled = false;
-            btnLoadSharing.Enabled = false;
-            btnLoadUsers.Enabled = false;
-            btnStartMigration.Enabled = false;
-
-            tbMigrationResult.Text = "Migration completed.";
-        }
-
-        private void Migrate(BackgroundWorker arg1, DoWorkEventArgs arg2)
+        private void Migrate(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Starting migration..");
 
-            int currentUserCount = 0;
-            int totalUserCount = migrationObjects.Count;
+            int currentUserTeamCount = 0;
+            int totalUserTeamCount = migrationObjects.Count;
 
             int currentViewCount = 0;
             int totalViewCount = migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Count);
@@ -371,9 +358,9 @@ namespace PersonalViewMigrationTool
 
             foreach (var migrationObject in migrationObjects.Where(x => x.MappedOwnerId != null && x.PersonalViewsMigrationObjects.Any())) 
             {
-                currentUserCount++;
+                currentUserTeamCount++;
                 // impersonate the owner of this batch
-                CustomLog($"Migrating User with ID: {migrationObject.OwnerId}..");
+                CustomLog($"Migrating User / Team with ID: {migrationObject.OwnerId}..");
                 var impersonatedConnection = targetConnection.GetCrmServiceClient();
                 impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
@@ -409,10 +396,21 @@ namespace PersonalViewMigrationTool
                         });
                         currentPoACount++;
                     }
-                    CustomLog($"Migrated User / Team {currentUserCount} / {totalUserCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
+                    CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                 }
             }
-            CustomLog("Migration completed");
+            CustomLog($"Migration completed. Migrated {currentViewCount} views owned by {currentUserTeamCount} users or teams and shared them with {currentPoACount} users or teams.");
+        }
+
+        private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
+        {
+            btnConnectTargetOrg.Enabled = false;
+            btnLoadPersonalViews.Enabled = false;
+            btnLoadSharing.Enabled = false;
+            btnLoadUsers.Enabled = false;
+            btnStartMigration.Enabled = false;
+
+            tbMigrationResult.Text = "Migration completed.";
         }
 
 
@@ -504,8 +502,6 @@ namespace PersonalViewMigrationTool
 
         private void CustomLog(string text)
         {
-            LogInfo(text);
-
             if (lbDebugOutput.InvokeRequired)
             {
                 UpdateLogWindowDelegate update = new UpdateLogWindowDelegate(CustomLog);
@@ -522,6 +518,7 @@ namespace PersonalViewMigrationTool
                 lbDebugOutput.SelectedIndex = lbDebugOutput.Items.Count - 1;
                 lbDebugOutput.ClearSelected();
             }
+            LogInfo(text);
         }
 
         private void openLogToolStripMenuItem_Click(object sender, EventArgs e)

@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("PersonalViewMigrationTool")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Personal View Migration Tool for XrmToolBox")]
+[assembly: AssemblyDescription("Plugin for XrmToolBox to migrate personal views incl. sharings")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Felix Mora")]
 [assembly: AssemblyProduct("PersonalViewMigrationTool")]
