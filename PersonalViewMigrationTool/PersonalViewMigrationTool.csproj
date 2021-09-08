@@ -223,6 +223,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="femo1de.PersonalViewMigrationTool.0.0.1.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -240,6 +241,11 @@
       IF NOT EXIST Plugins mkdir Plugins
       xcopy "$(TargetDir)$(TargetFileName)" "$(TargetDir)Plugins\" /Y
       xcopy "$(TargetDir)$(TargetName).pdb" "$(TargetDir)Plugins\" /Y
+      )
+
+IF $(ConfigurationName) == Release (
+      IF NOT EXIST $(ProjectDir)\lib\net472\Plugins mkdir $(ProjectDir)\lib\net472\Plugins
+      xcopy "$(TargetDir)$(TargetFileName)" "$(ProjectDir)lib\net472\Plugins\" /Y
       )</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

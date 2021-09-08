@@ -15,9 +15,9 @@ namespace PersonalViewMigrationTool
         ExportMetadata("Name", "Personal View Migration Tool"),
         ExportMetadata("Description", "Tool to migrate personal views including shares between environments."),
         // Please specify the base64 content of a 32x32 pixels image
-        ExportMetadata("SmallImageBase64", null),
+        ExportMetadata("SmallImageBase64", "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGASURBVFhH7ZYxdsIwDIZl2gP0CKylS44A12kmlmYExnTpFPaeBI6QpenKEXKBYn4FOa+mrmvTpPQ98r0njB3bUiRZDl09SlqapJmWv14wafVe5Evp/pqRtA1aU42frUuguJRpnWJ7AIqq9fNMhiwe0mwKIza9euASXNyA6BAgU3bIxJ0MB6DKap3PpfOFMzygxqTUNFhIJ7LQya20wcQkYcjRtkKA2SVc4nTXB95kROol2gBPWBkrBLAm4Ti7hJXLtE5pDYCS1ak0CXfyDAu2zYK/YPL4tAmJ43fwWt5Duk7OOAXdMhgwGNAWIhdNBqOcVkXunWfg+2JPhPJ7BIsWfJQ1qVcZajHFrFMPsHJWauQ4qsafx+xnPYVgT3oOJTOXoKhYX1bRl1EIN7iC34rcWTER1hphlV5gDkg3GH5TjwFWXv0QAlWaj9IgkbsjBq8HYrlPsyU25CTrygP9878LUSwmBHzUlNa1DFugKCU4BHe9hgA7J83pcQgrl2kDgOgAb7jUXobkYcYAAAAASUVORK5CYII="),
         // Please specify the base64 content of a 80x80 pixels image
-        ExportMetadata("BigImageBase64", null),
+        ExportMetadata("BigImageBase64", "iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHFSURBVHhe7doxUsJAFMbxt57AI9CKDUeAk9hLRSOlUsbGCnpPAkdII7YcgQvI+jYsI4UjmbxNYPH/m9mwgUmAL/tYEhAAAAAAAAAAADrh4q1Zfzz1sduIbjz7nBcvcTUbN/EWDSUP0HvZ6mJVp+moK+Nm2UpfwhrMevE6qvon3I+nQ91oGfqU8D9FgEYEaESARhczieiGG51JNvu+lSvXi2ISV1p1QSPQ9cS5YZImfhB32jpK2Oiqvgc2eQ1WjECj5CNQF6UelVof4F/6WXUj7i30GYGRHpGBvotlnXYIL2eUsFGyEr4bT/8sPyf+QZe90NfRN6vuPKJHcvUxL1ZxtZFzlHCyAE/pPz4t99/RRNbzopXnZRbOEAEaEaARARoRoBEBGhGgEQEaEaBRlmci4TriTqTa1zHd6fO+5zde3Pu+/7tUv0FnGWA47/4Jq5lUp5OUsFH2Ae7ET3Qojeo038J/cXS/3WirhEMwdS+DtXFFiBI2OssITIkRmLkOA3RluFKcpIW/gVyIzko4JSaRK0KARgRoRIBG2U8i4fTMeb+tHjjBixs4J7ehzyQSaQqDamat0Q7hpUQJAwAAAAAAAACQAZFv2yEaWy1qN08AAAAASUVORK5CYII="),
         ExportMetadata("BackgroundColor", "Lavender"),
         ExportMetadata("PrimaryFontColor", "Black"),
         ExportMetadata("SecondaryFontColor", "Gray")]
