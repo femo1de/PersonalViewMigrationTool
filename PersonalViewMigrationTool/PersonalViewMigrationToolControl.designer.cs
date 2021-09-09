@@ -332,10 +332,11 @@ namespace PersonalViewMigrationTool
             this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblWarning.Location = new System.Drawing.Point(3, 112);
             this.lblWarning.Name = "lblWarning";
-            this.lblWarning.Size = new System.Drawing.Size(331, 26);
+            this.lblWarning.Size = new System.Drawing.Size(355, 39);
             this.lblWarning.TabIndex = 0;
             this.lblWarning.Text = "Attention: This is an early PoC. \r\nUse at your own risk and always test on a non-" +
-    "production system first\r\n";
+    "production system first.\r\nRemember to use accounts with admin privileges to enab" +
+    "le impersonation.\r\n";
             // 
             // toolStripSeparator1
             // 
