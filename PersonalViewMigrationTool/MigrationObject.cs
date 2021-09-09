@@ -7,6 +7,8 @@ namespace PersonalViewMigrationTool
     {
         internal Guid OwnerId { get; set; }
 
+        internal string OwnerLogicalName { get; set; }
+
         internal Guid MappedOwnerId { get; set; }
 
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();

@@ -1,4 +1,6 @@
 ﻿
+using System.Reflection;
+
 namespace PersonalViewMigrationTool
 {
     partial class PersonalViewMigrationToolControl
@@ -34,7 +36,9 @@ namespace PersonalViewMigrationTool
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsbHelp = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsbFeedback = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.dropDownButtonLogs = new System.Windows.Forms.ToolStripDropDownButton();
             this.openLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openLogFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -55,8 +59,6 @@ namespace PersonalViewMigrationTool
             this.btnLoadPersonalViews = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.lblWarning = new System.Windows.Forms.Label();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -103,6 +105,11 @@ namespace PersonalViewMigrationTool
             this.tsbHelp.Text = "Help";
             this.tsbHelp.Click += new System.EventHandler(this.tsbHelp_Click);
             // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
+            // 
             // tsbFeedback
             // 
             this.tsbFeedback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
@@ -112,6 +119,11 @@ namespace PersonalViewMigrationTool
             this.tsbFeedback.Size = new System.Drawing.Size(79, 22);
             this.tsbFeedback.Text = "Report a Bug";
             this.tsbFeedback.Click += new System.EventHandler(this.tsbFeedback_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
             // dropDownButtonLogs
             // 
@@ -169,8 +181,6 @@ namespace PersonalViewMigrationTool
             this.lbDebugOutput.ForeColor = System.Drawing.Color.White;
             this.lbDebugOutput.FormattingEnabled = true;
             this.lbDebugOutput.HorizontalScrollbar = true;
-            this.lbDebugOutput.Items.AddRange(new object[] {
-            "Debug Output"});
             this.lbDebugOutput.Location = new System.Drawing.Point(382, 6);
             this.lbDebugOutput.MinimumSize = new System.Drawing.Size(500, 2);
             this.lbDebugOutput.Name = "lbDebugOutput";
@@ -337,16 +347,6 @@ namespace PersonalViewMigrationTool
             this.lblWarning.Text = "Attention: This is an early PoC. \r\nUse at your own risk and always test on a non-" +
     "production system first.\r\nRemember to use accounts with admin privileges to enab" +
     "le impersonation.\r\n";
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
-            // 
-            // toolStripSeparator2
-            // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
             // PersonalViewMigrationToolControl
             // 
