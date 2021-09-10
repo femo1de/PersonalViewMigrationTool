@@ -7,6 +7,8 @@ namespace PersonalViewMigrationTool
     {
         internal Guid OwnerId { get; set; }
 
+        internal string OwnerName { get; set; }
+
         internal string OwnerLogicalName { get; set; }
 
         internal Guid MappedOwnerId { get; set; }

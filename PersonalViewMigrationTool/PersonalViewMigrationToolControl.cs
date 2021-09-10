@@ -31,14 +31,15 @@ namespace PersonalViewMigrationTool
 
 
         // TODO: Limit columns
-        const string fetch_PersonalViewsByUser = @"
-                    <fetch>
-                      <entity name='userquery'>
-                        <filter>
-                          <condition attribute='ownerid' operator='eq' value='{0}'/>
-                        </filter>
-                      </entity>
-                    </fetch>";
+        const string fetch_PersonalViewsCreatedByUser = @"
+            <fetch>
+              <entity name='userquery'>
+                <filter>
+                  <condition attribute='createdby' operator='eq' value='{0}'/>
+                </filter>
+              </entity>
+            </fetch>";
+
 
         #region IHelpPluginImplementation
 
@@ -117,8 +118,14 @@ namespace PersonalViewMigrationTool
 
         private void btnConnectTargetOrg_Click(object sender, EventArgs e)
         {
+            // remove the currently connected target if it was connected before - we allow only one target connection
+            if (targetConnection != null)
+            {
+                RemoveAdditionalOrganization(targetConnection);
+            }
             AddAdditionalOrganization();
         }
+   
         private void btnConnectSource_Click(object sender, EventArgs e)
         {
             RaiseRequestConnectionEvent(new RequestConnectionEventArgs()
@@ -134,7 +141,7 @@ namespace PersonalViewMigrationTool
 
             WorkAsync(new WorkAsyncInfo()
             {
-                Message = "Mapping and Loading Personal Views",
+                Message = "Mapping Users and Loading Personal Views",
                 Work = RetrievePersonalViews,
                 PostWorkCallBack = OnPersonalViewsRetrieved
             });
@@ -211,6 +218,17 @@ namespace PersonalViewMigrationTool
                     mySettings.LastUsedOrganizationWebappUrl = detail.WebApplicationUrl;
                     LogInfo("Connection has changed to: {0}", detail.WebApplicationUrl);
                 }
+
+                // check whether this user can impersonate other users
+                if (!detail.CanImpersonate)
+                {
+                    MessageBox.Show("Source user does not have the impersonate privileges! You will only be able to migrate this user's own personal views","Unable to impersonate other users", MessageBoxButton.OK, MessageBoxImage.Hand );
+                    CustomLog("Source user does not have the impersonate privileges! You will only be able to migrate this user's own personal views");
+                }
+                else
+                {
+                    CustomLog($"Source User impersonation check successfull.");
+                }
             }
         }
 
@@ -231,6 +249,17 @@ namespace PersonalViewMigrationTool
                 var whoAmIResponse = targetConnection.GetCrmServiceClient().Execute(new WhoAmIRequest()) as WhoAmIResponse;
                 CustomLog($"BusinessUnitId: {whoAmIResponse.BusinessUnitId.ToString("b")}, OrganizationId: {whoAmIResponse.OrganizationId.ToString("b")},  UserId: {whoAmIResponse.UserId.ToString("b")}");
                 btnLoadUsers.Enabled = true;
+
+                // check whether this user can impersonate other users
+                if (!targetConnection.CanImpersonate)
+                {
+                    MessageBox.Show("Target user does not have the impersonate privileges! You will only be able to migrate this user's own personal views", "Unable to impersonate other users", MessageBoxButton.OK, MessageBoxImage.Hand);
+                    CustomLog("Target user does not have the impersonate privileges! You will only be able to migrate this user's own personal views");
+                }
+                else
+                {
+                    CustomLog($"Target User impersonation check successfull.");
+                }
             }
         }
 
@@ -279,7 +308,10 @@ namespace PersonalViewMigrationTool
 
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
-            CustomLog("Mapping users / teams from source to target...");
+            CustomLog("Mapping users / teams from source to target and retrieving their personal views...");
+
+            migrationObjects.Clear();
+
             foreach (var sourceUserOrTeam in sourceUserAndTeamRecords)
             {
                 var mo = new MigrationObject()
@@ -289,71 +321,92 @@ namespace PersonalViewMigrationTool
                     PersonalViewsMigrationObjects = new List<PersonalViewMigrationObject>()
                 };
 
-                if (targetUserAndTeamRecords.Any(u => u.Id == sourceUserOrTeam.Id))
-                {
-                    // could be mapped via id
-                    mo.MappedOwnerId = sourceUserOrTeam.Id;
-                }
-                else
-                {
-                    if (sourceUserOrTeam.LogicalName == "systemuser")
-                    {
-                        // needs to be mapped via domainname
-                        if (sourceUserOrTeam.Attributes.TryGetValue("domainname", out object sourceUserDomainName))
-                        {
-                            CustomLog($"Unable to map source user {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["fullname"]} via ID, will try to find a user with the same domainname on the target system");
-                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("domainname") && t.Attributes["domainname"].ToString() == sourceUserDomainName.ToString());
-
-                            if (mappingCandidate != null)
-                            {
-                                mo.MappedOwnerId = mappingCandidate.Id;
-                                CustomLog($"Mapped user via Domain Name: {sourceUserDomainName}.");
-                            }
-                            else
-                            {
-                                CustomLog($"Unable to map source user {sourceUserOrTeam.Id} - name: {sourceUserOrTeam.Attributes["fullname"]} domain name: {sourceUserDomainName} via ID or domainname. This User's views will not be migrated.");
-                            }
-                        }
-                    }
-                    else if (sourceUserOrTeam.LogicalName == "team")
-                    {
-                        // needs to be mapped via team name
-
-                        object sourceTeamname = null;
-                        // get the name from the source team with that id
-                        if (sourceUserOrTeam.Attributes.TryGetValue("name", out  sourceTeamname))
-                        {
-                            var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
-                            if (mappingCandidate != null)
-                            {
-                                // found a team that can be mapped 
-                                mo.MappedOwnerId = mappingCandidate.Id;
-                                CustomLog($"Mapped team via Domain Name: {sourceTeamname}.");
-                            }
-                            else
-                            {
-                                CustomLog($"Unable to map source team {sourceUserOrTeam.Id} - {sourceTeamname} via ID or name. This Team's views will not be migrated.");
-                            }
-                        }
-                    }
-                }
-
                 if (sourceUserOrTeam.LogicalName == "systemuser")
                 {
-                    var impersonatedClient = sourceConnection.GetCrmServiceClient();
-                    impersonatedClient.CallerId = sourceUserOrTeam.Id;
-                    var userPersonalViews = impersonatedClient.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsByUser, sourceUserOrTeam.Id)));
-                    userPersonalViews.ForEach(x => mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject { PersonalView = x }));
+                    // set user name
+                    mo.OwnerName = sourceUserOrTeam.Attributes["fullname"].ToString();
+
+                    // try to map user via id
+                    if (targetUserAndTeamRecords.Any(x => x.Id == sourceUserOrTeam.Id))
+                    {
+                        mo.MappedOwnerId = sourceUserOrTeam.Id;
+                    }
+
+                    // needs to be mapped via domainname
+                    else if (sourceUserOrTeam.Attributes.TryGetValue("domainname", out object sourceUserDomainName))
+                    {
+                        CustomLog($"Unable to map source user {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["fullname"]} via ID, will try to find a user with the same domainname on the target system");
+                        var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("domainname") && t.Attributes["domainname"].ToString() == sourceUserDomainName.ToString());
+
+                        if (mappingCandidate != null)
+                        {
+                            mo.MappedOwnerId = mappingCandidate.Id;
+                            CustomLog($"   Mapped user via Domain Name: {sourceUserDomainName}.");
+                        }
+                        else
+                        {
+                            CustomLog($"   Mapping failed, this user's views will not be migrated: {sourceUserOrTeam.Attributes["fullname"]}");
+                            continue;
+                        }
+                    }
                 }
                 else if (sourceUserOrTeam.LogicalName == "team")
                 {
-                    CustomLog("This view is owned by a team which is currently not supported");
+                    // set team name
+                    mo.OwnerName = sourceUserOrTeam.Attributes["name"].ToString();
+
+                    // try to map team via id
+                    if (targetUserAndTeamRecords.Any(u => u.Id == sourceUserOrTeam.Id))
+                    {
+                        // could be mapped via id
+                        mo.MappedOwnerId = sourceUserOrTeam.Id;
+                    }
+
+                    // needs to be mapped via team name
+                    // get the name from the source team with that id
+                    else if (sourceUserOrTeam.Attributes.TryGetValue("name", out object sourceTeamname))
+                    {
+                        var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
+                        if (mappingCandidate != null)
+                        {
+                            // found a team that can be mapped 
+                            mo.MappedOwnerId = mappingCandidate.Id;
+                            CustomLog($"   Mapped team via Domain Name: {sourceTeamname}.");
+                        }
+                        else
+                        {
+                            CustomLog($"   Unable to map source team {sourceUserOrTeam.Id} - {sourceTeamname} via ID or name. This Team's views will not be migrated.");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // the source team name is empty
+                        CustomLog($"   This team does not seem to have a name in the source system, mapping is not possible.");
+                        continue;
+                    }
+                }
+
+                // mapping completed for the current user / team .. retrieve the personal views now
+
+                if (sourceUserOrTeam.LogicalName == "systemuser")
+                {
+                    var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
+                    impersonatedSourceConnection.CallerId = sourceUserOrTeam.Id;
+
+                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUserOrTeam.Id)));
+                    userPersonalViews.ForEach(x => mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject { PersonalView = x }));
+                    CustomLog($"{sourceUserOrTeam.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
+                }
+                else if (sourceUserOrTeam.LogicalName == "team")
+                {
+                   // personal views can't be created by a team
                 }
 
                 migrationObjects.Add(mo);
             }
             CustomLog("Done.");
-            CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, owned between {migrationObjects.Count} users or teams.");
+            CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, created by {migrationObjects.Count} users that can be mapped.");
         }
 
         private void OnPersonalViewsRetrieved(RunWorkerCompletedEventArgs obj)
@@ -369,9 +422,11 @@ namespace PersonalViewMigrationTool
 
             foreach (var migrationObject in migrationObjects.Where(x => x.PersonalViewsMigrationObjects.Any()))
             {
-                // user level
-                CustomLog($"Mapping Views owned by {migrationObject.OwnerId}..");
+                int sharesByCurrentUser = 0;
+                int sharesThatCouldNotbeMapped = 0;
+                int sharesThatCouldBeMapped = 0;
 
+                // user level
                 foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                 {
                     // personal view level
@@ -379,6 +434,7 @@ namespace PersonalViewMigrationTool
                     {
                         Target = personalViewMigrationObject.PersonalView.ToEntityReference()
                     };
+                    
                     var accessResponse = (RetrieveSharedPrincipalsAndAccessResponse) sourceConnection.GetCrmServiceClient().ExecuteCrmOrganizationRequest(accessRequest);
 
                     if (accessResponse == null)
@@ -390,6 +446,8 @@ namespace PersonalViewMigrationTool
                     // perform mapping if necessary
                     foreach (var poa in accessResponse.PrincipalAccesses)
                     {
+                        sharesByCurrentUser++;
+
                         // add the non-mapped poa object
                         personalViewMigrationObject.Sharings.Add(poa);
 
@@ -400,10 +458,12 @@ namespace PersonalViewMigrationTool
                             {
                                 // could be mapped via id
                                 personalViewMigrationObject.MappedSharings.Add(poa);
+                                sharesThatCouldBeMapped++;
                             }
                             else
                             {
                                 object sourceDomainName = null;
+
                                 // get the domainname from the source user with that id
                                 if (sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser").FirstOrDefault(x => x.Id == poa.Principal.Id)?.Attributes.TryGetValue("domainname", out sourceDomainName) == true)
                                 {
@@ -412,11 +472,12 @@ namespace PersonalViewMigrationTool
                                     {
                                         var poaCopy = poa;
                                         poaCopy.Principal = mappingCandidate.ToEntityReference();
-
                                         personalViewMigrationObject.MappedSharings.Add(poaCopy);
+                                        sharesThatCouldBeMapped++;
                                     }
                                     else
                                     {
+                                        sharesThatCouldNotbeMapped++;
                                         CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. " +
                                             $"This Id does not exist in the target system and the user's domainname adress was not found in the target system for mapping. This sharing will be skipped.");
                                     }
@@ -424,6 +485,7 @@ namespace PersonalViewMigrationTool
                                 else
                                 {
                                     // this source user has no domainname address and cant be mapped by id either
+                                    sharesThatCouldNotbeMapped++;
                                     CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a user with the id {poa.Principal.Id}. This Id does not exist in the target system and the user didnt contain an domainname adress that could be used for mapping. This sharing will be skipped.");
                                 } 
                             }
@@ -434,6 +496,7 @@ namespace PersonalViewMigrationTool
                             {
                                 // could be mapped via id
                                 personalViewMigrationObject.MappedSharings.Add(poa);
+                                sharesThatCouldBeMapped++;
                             }
                             else
                             {
@@ -446,11 +509,12 @@ namespace PersonalViewMigrationTool
                                     {
                                         var poaCopy = poa;
                                         poaCopy.Principal = mappingCandidate.ToEntityReference();
-
                                         personalViewMigrationObject.MappedSharings.Add(poaCopy);
+                                        sharesThatCouldBeMapped++;
                                     }
                                     else
                                     {
+                                        sharesThatCouldNotbeMapped++;
                                         CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a team with the id {poa.Principal.Id}. " +
                                             $"This Id does not exist in the target system and the teams's name was not found in the target system for mapping. This sharing will be skipped.");
                                     }
@@ -458,13 +522,14 @@ namespace PersonalViewMigrationTool
                                 else
                                 {
                                     // this source team has no name  and cant be mapped by id either
+                                    sharesThatCouldNotbeMapped++;
                                     CustomLog($"The view {personalViewMigrationObject.PersonalView.Id} was shared with a team with the id {poa.Principal.Id}. This Id does not exist in the target system and the team didnt contain a name adress that could be used for mapping. This sharing will be skipped.");
                                 }
                             }
                         }
                     }
                 }
-                CustomLog("Done.");
+                CustomLog($"{migrationObject.OwnerName} has {sharesByCurrentUser} sharings of which {sharesThatCouldBeMapped} could be mapped to a target user / team and {sharesThatCouldNotbeMapped} could not be mapped.");
             }
 
             CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects in total.");
