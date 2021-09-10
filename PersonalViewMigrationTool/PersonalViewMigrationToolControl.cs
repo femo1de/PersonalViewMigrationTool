@@ -2,6 +2,8 @@
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
+using PersonalViewMigrationTool.Dto;
+using PersonalViewMigrationTool.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;

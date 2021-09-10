@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace PersonalViewMigrationTool
+namespace PersonalViewMigrationTool.Dto
 {
     internal class MigrationObject
     {
