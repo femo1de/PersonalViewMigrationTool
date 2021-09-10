@@ -13,7 +13,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows;
+using System.Windows.Forms;
 using XrmToolBox.Extensibility;
 using XrmToolBox.Extensibility.Interfaces;
 
@@ -21,15 +21,16 @@ namespace PersonalViewMigrationTool
 {
     public partial class PersonalViewMigrationToolControl : MultipleConnectionsPluginControlBase, IGitHubPlugin, IAboutPlugin, IHelpPlugin
     {
-        private Settings mySettings;
+        #region Fields
 
+        private Settings mySettings;
         private List<Entity> sourceUserAndTeamRecords = new List<Entity>();
         private List<Entity> targetUserAndTeamRecords = new List<Entity>();
-
         private ConnectionDetail sourceConnection;
         private ConnectionDetail targetConnection;
-
         private List<MigrationObject> migrationObjects = new List<MigrationObject>();
+        private delegate void _updateTreeNodeDelegate(NodeUpdateObject nodeUpdateObject);
+        private delegate void _updateLogWindowDelegate(string msg);
 
         // TODO: Limit columns
         const string fetch_PersonalViewsCreatedByUser = @"
@@ -41,11 +42,17 @@ namespace PersonalViewMigrationTool
               </entity>
             </fetch>";
 
+        #endregion
+
+        #region ctor
         public PersonalViewMigrationToolControl()
         {
             InitializeComponent();
+            LogInfo("Plugin initialized.");
             CustomLog("Executing Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
         }
+
+        #endregion
 
         #region IHelpPluginImplementation
 
@@ -222,7 +229,7 @@ namespace PersonalViewMigrationTool
                 // check whether this user can impersonate other users
                 if (!detail.CanImpersonate)
                 {
-                    MessageBox.Show("Source user does not have the impersonate privileges! You will only be able to migrate this user's own personal views","Unable to impersonate other users", MessageBoxButton.OK, MessageBoxImage.Hand );
+                    MessageBox.Show("Source user does not have the impersonate privileges! You will only be able to migrate this user's own personal views","Unable to impersonate other users", MessageBoxButtons.OK, MessageBoxIcon.Hand );
                     CustomLog("Source user does not have the impersonate privileges! You will only be able to migrate this user's own personal views");
                 }
                 else
@@ -253,7 +260,8 @@ namespace PersonalViewMigrationTool
                 // check whether this user can impersonate other users
                 if (!targetConnection.CanImpersonate)
                 {
-                    MessageBox.Show("Target user does not have the impersonate privileges! You will only be able to migrate this user's own personal views", "Unable to impersonate other users", MessageBoxButton.OK, MessageBoxImage.Hand);
+                    MessageBox.Show("Target user does not have the impersonate privileges! You will only be able to migrate this user's own personal views", 
+                        "Unable to impersonate other users", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     CustomLog("Target user does not have the impersonate privileges! You will only be able to migrate this user's own personal views");
                 }
                 else
@@ -268,13 +276,13 @@ namespace PersonalViewMigrationTool
             if (Service == null)
             {
                 CustomLog("Source connection has not been set. Please connect a source environment.");
-                MessageBox.Show("Source connection has not been set. Please connect a source environment.", "Please connect source system", MessageBoxButton.OK, MessageBoxImage.Stop);
+                MessageBox.Show("Source connection has not been set. Please connect a source environment.", "Please connect source system", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 args.Cancel = true;
                 return;
             }
 
-            var sourceUsers = RetrieveUserRecords(Service);
-            var destinationUsers = RetrieveUserRecords(AdditionalConnectionDetails[0].GetCrmServiceClient());
+            var sourceUsers = RetrieveUsersAndTeams(Service);
+            var destinationUsers = RetrieveUsersAndTeams(AdditionalConnectionDetails[0].GetCrmServiceClient());
 
             args.Result = new object[] { sourceUsers, destinationUsers };
         }
@@ -294,7 +302,7 @@ namespace PersonalViewMigrationTool
             CustomLog($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
             CustomLog($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
 
-            tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users retrieved";
+            tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users / teams retrieved";
 
             var usersNotInTarget = sourceUserAndTeamRecords.Where(u => !targetUserAndTeamRecords.Any(x => x.Id == u.Id)).Select(x => x).ToList();
 
@@ -306,28 +314,65 @@ namespace PersonalViewMigrationTool
             CustomLog("----------------------");
         }
 
+        private void UpdateNode(NodeUpdateObject nodeUpdateObject)
+        {
+            if (treeView1.InvokeRequired)
+            {
+                treeView1.Invoke(new _updateTreeNodeDelegate(UpdateNode), nodeUpdateObject);
+            }
+            else
+            {
+                try
+                {
+                    var targetNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
+                    if (targetNode == null)
+                    {
+                        // node needs to be created
+
+                        // get parent node
+                        var parentNode = treeView1.Nodes.Find(nodeUpdateObject.ParentNodeId, true).FirstOrDefault();
+
+                        if (parentNode == null) throw new Exception("Tried to add a node under a parent that does not exist.");
+
+                        targetNode = new TreeNode()
+                        {
+                            Name = nodeUpdateObject.NodeId,
+                            Text = nodeUpdateObject.NodeText
+                        };
+                        parentNode.Nodes.Add(targetNode);
+                        parentNode.Expand();
+                    }
+
+                    // node is created at that point, update it
+
+                    if (!nodeUpdateObject.WillMigrate)
+                    {
+                        targetNode.ForeColor = System.Drawing.Color.DimGray;
+                        targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError("Exception building the TreeView. This is not critical and the migration can resume.");
+                    LogError(ex.Message + " " + ex.StackTrace);
+                }
+            }
+        }
+
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
-            CustomLog("Mapping users / teams from source to target and retrieving their personal views...");
+            CustomLog("Mapping users / teams from source to target...");
 
             // source might still be impersonating someone. Force CallerId to be empty
             sourceConnection.RemoveImpersonation();
-
             migrationObjects.Clear();
 
             foreach (var sourceUserOrTeam in sourceUserAndTeamRecords)
             {
-                var mo = new MigrationObject()
-                {
-                    OwnerId = sourceUserOrTeam.Id,
-                    OwnerLogicalName = sourceUserOrTeam.LogicalName,
-                    PersonalViewsMigrationObjects = new List<PersonalViewMigrationObject>()
-                };
-
                 if (sourceUserOrTeam.LogicalName == "systemuser")
                 {
-                    // set user name
-                    mo.OwnerName = sourceUserOrTeam.Attributes["fullname"].ToString();
+                    var mo = new MigrationObject(UpdateNode, sourceUserOrTeam.LogicalName, sourceUserOrTeam.Id, sourceUserOrTeam.Attributes["fullname"].ToString());
+                    migrationObjects.Add(mo);
 
                     // try to map user via id
                     if (targetUserAndTeamRecords.Any(x => x.Id == sourceUserOrTeam.Id))
@@ -349,14 +394,15 @@ namespace PersonalViewMigrationTool
                         else
                         {
                             CustomLog($"   Mapping failed, this user's views will not be migrated: {sourceUserOrTeam.Attributes["fullname"]}");
-                            continue;
+                            mo.WillBeMigrated = false;
+                            mo.NotMigrateReason = "This user could not be mapped to the target system. The user's views will not be migrated.";
                         }
                     }
                 }
                 else if (sourceUserOrTeam.LogicalName == "team")
                 {
-                    // set team name
-                    mo.OwnerName = sourceUserOrTeam.Attributes["name"].ToString();
+                    var mo = new MigrationObject(UpdateNode, sourceUserOrTeam.LogicalName, sourceUserOrTeam.Id, sourceUserOrTeam.Attributes["name"].ToString());
+                    migrationObjects.Add(mo);
 
                     // try to map team via id
                     if (targetUserAndTeamRecords.Any(u => u.Id == sourceUserOrTeam.Id))
@@ -379,35 +425,50 @@ namespace PersonalViewMigrationTool
                         else
                         {
                             CustomLog($"   Unable to map source team {sourceUserOrTeam.Id} - {sourceTeamname} via ID or name. This Team's views will not be migrated.");
-                            continue;
+                            mo.WillBeMigrated = false;
+                            mo.NotMigrateReason = "This team could not be mapped to the target system. The team's views will not be migrated.";
                         }
                     }
                     else
                     {
                         // the source team name is empty
                         CustomLog($"   This team does not seem to have a name in the source system, mapping is not possible.");
-                        continue;
+                        mo.WillBeMigrated = false;
+                        mo.NotMigrateReason = "This team could not be mapped to the target system. The team's views will not be migrated.";
                     }
                 }
-
-                // mapping completed for the current user / team .. retrieve the personal views now
-
-                if (sourceUserOrTeam.LogicalName == "systemuser")
-                {
-                    var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
-                    impersonatedSourceConnection.CallerId = sourceUserOrTeam.Id;
-
-                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUserOrTeam.Id)));
-                    userPersonalViews.ForEach(x => mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject { PersonalView = x }));
-                    CustomLog($"{sourceUserOrTeam.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
-                }
-                else if (sourceUserOrTeam.LogicalName == "team")
-                {
-                   // personal views can't be created by a team
-                }
-
-                migrationObjects.Add(mo);
             }
+
+            CustomLog("Completed mapping users and teams.");
+            CustomLog("Retrieving personal views...");
+            // mapping completed for the current user / team .. retrieve the personal views now
+            foreach (var sourceUser in sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser"))
+            {
+
+                var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
+
+                var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
+                impersonatedSourceConnection.CallerId = sourceUser.Id;
+
+                var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUser.Id)));
+
+                if (!userPersonalViews.Any())
+                {
+                    mo.WillBeMigrated = false;
+                    mo.NotMigrateReason = "This user has no personal views that could be migrated.";
+                }
+                else
+                {
+                    userPersonalViews.ForEach(
+                        x =>
+                        {
+                            mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString()));
+                        }
+                    );
+                }
+                CustomLog($"{sourceUser.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
+            }
+
             CustomLog("Done.");
             CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, created by {migrationObjects.Count} users that can be mapped.");
         }
@@ -549,7 +610,6 @@ namespace PersonalViewMigrationTool
 
             CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects in total.");
         }
-
         private void OnSharingRetrieved(RunWorkerCompletedEventArgs obj)
         {
             tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
@@ -623,14 +683,13 @@ namespace PersonalViewMigrationTool
             if (currentViewCount != totalViewCount || currentPoACount != totalPoACount)
             {
                 CustomLog("Not all views or sharings could be migrated. Please refer to the log file for a complete list.");
-                MessageBox.Show("Not all views or sharings could be migrated. Please refer to the log file for a complete list.", "Not everything could be migrated", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                MessageBox.Show("Not all views or sharings could be migrated. Please refer to the log file for a complete list.", "Not everything could be migrated", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
             else
             {
-                MessageBox.Show("Migration completed successfully", "", MessageBoxButton.OK);
+                MessageBox.Show("Migration completed successfully", "", MessageBoxButtons.OK);
             }
         }
-
         private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
         {
             btnConnectSource.Enabled = false;
@@ -643,7 +702,7 @@ namespace PersonalViewMigrationTool
             tbMigrationResult.Text = "Migration completed.";
         }
 
-        private List<Entity> RetrieveUserRecords(IOrganizationService service)
+        private List<Entity> RetrieveUsersAndTeams(IOrganizationService service)
         {
             var usersQuery = new QueryExpression("systemuser")
             {
@@ -684,13 +743,11 @@ namespace PersonalViewMigrationTool
 
         #region Helpers
 
-        delegate void UpdateLogWindowDelegate(string msg);
-
         private void CustomLog(string text)
         {
             if (lbDebugOutput.InvokeRequired)
             {
-                UpdateLogWindowDelegate update = new UpdateLogWindowDelegate(CustomLog);
+                _updateLogWindowDelegate update = new _updateLogWindowDelegate(CustomLog);
                 lbDebugOutput.Invoke(update, text);
             }
             else
@@ -708,6 +765,5 @@ namespace PersonalViewMigrationTool
         }
 
         #endregion
-
     }
 }

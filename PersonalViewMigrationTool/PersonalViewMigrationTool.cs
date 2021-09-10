@@ -26,7 +26,6 @@ namespace PersonalViewMigrationTool
 
         public override IXrmToolBoxPluginControl GetControl()
         {
- 
             return new PersonalViewMigrationToolControl();
         }
 

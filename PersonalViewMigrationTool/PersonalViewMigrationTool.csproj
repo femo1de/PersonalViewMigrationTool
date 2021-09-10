@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dto\MigrationObject.cs" />
+    <Compile Include="Dto\NodeUpdateObject.cs" />
     <Compile Include="Dto\PersonalViewMigrationObject.cs" />
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="PersonalViewMigrationTool.cs" />

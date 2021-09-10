@@ -32,6 +32,8 @@ namespace PersonalViewMigrationTool
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PersonalViewMigrationToolControl));
+            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Users");
+            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Teams");
             this.toolStripMenu = new System.Windows.Forms.ToolStrip();
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -59,10 +61,17 @@ namespace PersonalViewMigrationTool
             this.btnLoadPersonalViews = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.lblWarning = new System.Windows.Forms.Label();
+            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.treeView1 = new System.Windows.Forms.TreeView();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.tabControl1.SuspendLayout();
+            this.tabPage1.SuspendLayout();
+            this.tabPage2.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStripMenu
@@ -78,7 +87,7 @@ namespace PersonalViewMigrationTool
             this.dropDownButtonLogs});
             this.toolStripMenu.Location = new System.Drawing.Point(0, 0);
             this.toolStripMenu.Name = "toolStripMenu";
-            this.toolStripMenu.Size = new System.Drawing.Size(1135, 25);
+            this.toolStripMenu.Size = new System.Drawing.Size(1317, 25);
             this.toolStripMenu.TabIndex = 4;
             this.toolStripMenu.Text = "toolStrip1";
             // 
@@ -181,13 +190,12 @@ namespace PersonalViewMigrationTool
             this.lbDebugOutput.ForeColor = System.Drawing.Color.White;
             this.lbDebugOutput.FormattingEnabled = true;
             this.lbDebugOutput.HorizontalScrollbar = true;
-            this.lbDebugOutput.Location = new System.Drawing.Point(382, 6);
+            this.lbDebugOutput.Location = new System.Drawing.Point(3, 3);
             this.lbDebugOutput.MinimumSize = new System.Drawing.Size(500, 2);
             this.lbDebugOutput.Name = "lbDebugOutput";
-            this.tableLayoutPanel1.SetRowSpan(this.lbDebugOutput, 2);
             this.lbDebugOutput.ScrollAlwaysVisible = true;
             this.lbDebugOutput.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.lbDebugOutput.Size = new System.Drawing.Size(747, 741);
+            this.lbDebugOutput.Size = new System.Drawing.Size(733, 709);
             this.lbDebugOutput.TabIndex = 11;
             this.lbDebugOutput.TabStop = false;
             // 
@@ -195,11 +203,11 @@ namespace PersonalViewMigrationTool
             // 
             this.tableLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.tableLayoutPanel1.ColumnCount = 2;
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.39238F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 66.60762F));
-            this.tableLayoutPanel1.Controls.Add(this.lbDebugOutput, 1, 0);
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 350F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel1.Controls.Add(this.panel1, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.panel2, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.tabControl1, 1, 0);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 25);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -207,7 +215,7 @@ namespace PersonalViewMigrationTool
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(1135, 753);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(1317, 858);
             this.tableLayoutPanel1.TabIndex = 12;
             // 
             // panel1
@@ -227,7 +235,7 @@ namespace PersonalViewMigrationTool
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(6, 6);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(370, 367);
+            this.panel1.Size = new System.Drawing.Size(344, 420);
             this.panel1.TabIndex = 12;
             // 
             // btnConnectSource
@@ -245,7 +253,7 @@ namespace PersonalViewMigrationTool
             this.tbMigrationResult.Enabled = false;
             this.tbMigrationResult.Location = new System.Drawing.Point(3, 334);
             this.tbMigrationResult.Name = "tbMigrationResult";
-            this.tbMigrationResult.Size = new System.Drawing.Size(364, 20);
+            this.tbMigrationResult.Size = new System.Drawing.Size(338, 20);
             this.tbMigrationResult.TabIndex = 22;
             this.tbMigrationResult.Text = "Migration not completed";
             // 
@@ -331,9 +339,9 @@ namespace PersonalViewMigrationTool
             // 
             this.panel2.Controls.Add(this.lblWarning);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel2.Location = new System.Drawing.Point(6, 379);
+            this.panel2.Location = new System.Drawing.Point(6, 432);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(370, 368);
+            this.panel2.Size = new System.Drawing.Size(344, 420);
             this.panel2.TabIndex = 13;
             // 
             // lblWarning
@@ -342,11 +350,62 @@ namespace PersonalViewMigrationTool
             this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblWarning.Location = new System.Drawing.Point(3, 112);
             this.lblWarning.Name = "lblWarning";
-            this.lblWarning.Size = new System.Drawing.Size(355, 39);
+            this.lblWarning.Size = new System.Drawing.Size(334, 65);
             this.lblWarning.TabIndex = 0;
             this.lblWarning.Text = "Attention: This is an early PoC. \r\nUse at your own risk and always test on a non-" +
-    "production system first.\r\nRemember to use accounts with admin privileges to enab" +
-    "le impersonation.\r\n";
+    "production system first.\r\n\r\nRemember to use accounts with admin privileges to en" +
+    "able \r\nimpersonation.\r\n";
+            // 
+            // tabControl1
+            // 
+            this.tabControl1.Controls.Add(this.tabPage1);
+            this.tabControl1.Controls.Add(this.tabPage2);
+            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl1.Location = new System.Drawing.Point(356, 6);
+            this.tabControl1.Name = "tabControl1";
+            this.tableLayoutPanel1.SetRowSpan(this.tabControl1, 2);
+            this.tabControl1.SelectedIndex = 0;
+            this.tabControl1.Size = new System.Drawing.Size(955, 846);
+            this.tabControl1.TabIndex = 14;
+            this.tabControl1.TabStop = false;
+            // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.treeView1);
+            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(947, 820);
+            this.tabPage1.TabIndex = 0;
+            this.tabPage1.Text = "Overview";
+            this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // treeView1
+            // 
+            this.treeView1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.treeView1.Location = new System.Drawing.Point(3, 3);
+            this.treeView1.Name = "treeView1";
+            treeNode1.Name = "nUsers";
+            treeNode1.Text = "Users";
+            treeNode2.Name = "nTeams";
+            treeNode2.Text = "Teams";
+            this.treeView1.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
+            treeNode1,
+            treeNode2});
+            this.treeView1.ShowNodeToolTips = true;
+            this.treeView1.Size = new System.Drawing.Size(941, 814);
+            this.treeView1.TabIndex = 0;
+            // 
+            // tabPage2
+            // 
+            this.tabPage2.Controls.Add(this.lbDebugOutput);
+            this.tabPage2.Location = new System.Drawing.Point(4, 22);
+            this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(739, 715);
+            this.tabPage2.TabIndex = 1;
+            this.tabPage2.Text = "Output";
+            this.tabPage2.UseVisualStyleBackColor = true;
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -355,7 +414,7 @@ namespace PersonalViewMigrationTool
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.toolStripMenu);
             this.Name = "PersonalViewMigrationToolControl";
-            this.Size = new System.Drawing.Size(1135, 778);
+            this.Size = new System.Drawing.Size(1317, 883);
             this.Load += new System.EventHandler(this.PersonalViewMigrationToolControl_Load);
             this.toolStripMenu.ResumeLayout(false);
             this.toolStripMenu.PerformLayout();
@@ -364,6 +423,9 @@ namespace PersonalViewMigrationTool
             this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
+            this.tabControl1.ResumeLayout(false);
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage2.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -397,5 +459,9 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.ToolStripButton tsbFeedback;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.TabPage tabPage1;
+        private System.Windows.Forms.TreeView treeView1;
+        private System.Windows.Forms.TabPage tabPage2;
     }
 }
