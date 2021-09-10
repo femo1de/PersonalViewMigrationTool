@@ -29,7 +29,6 @@ namespace PersonalViewMigrationTool
 
         private List<MigrationObject> migrationObjects = new List<MigrationObject>();
 
-
         // TODO: Limit columns
         const string fetch_PersonalViewsCreatedByUser = @"
             <fetch>
@@ -40,6 +39,11 @@ namespace PersonalViewMigrationTool
               </entity>
             </fetch>";
 
+        public PersonalViewMigrationToolControl()
+        {
+            InitializeComponent();
+            CustomLog("Executing Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+        }
 
         #region IHelpPluginImplementation
 
@@ -62,12 +66,6 @@ namespace PersonalViewMigrationTool
         }
 
         #endregion
-
-        public PersonalViewMigrationToolControl()
-        {
-            InitializeComponent();
-            CustomLog("Executing Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
-        }
 
         #region Control Events
 
@@ -310,6 +308,9 @@ namespace PersonalViewMigrationTool
         {
             CustomLog("Mapping users / teams from source to target and retrieving their personal views...");
 
+            // source might still be impersonating someone. Force CallerId to be empty
+            sourceConnection.RemoveImpersonation();
+
             migrationObjects.Clear();
 
             foreach (var sourceUserOrTeam in sourceUserAndTeamRecords)
@@ -419,6 +420,9 @@ namespace PersonalViewMigrationTool
         private void RetrieveSharings(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Retrieving the Sharings for the loaded personal views..");
+
+            // sourceConnection might still be impersonating someone. Force CallerId to be empty
+            sourceConnection.RemoveImpersonation();
 
             try
             {
