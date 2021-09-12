@@ -17,7 +17,23 @@ namespace PersonalViewMigrationTool.Dto
 
         internal MigrationObject _parentMigrationObject;
 
-        internal bool MigrationResult { get; set; }
+        private bool migrationResult = false;
+
+        internal bool MigrationResult
+        {
+            get => migrationResult;
+            set
+            {
+                migrationResult = value;
+
+                // update ui
+                updateNodeUi(new NodeUpdateObject()
+                {
+                    NodeId = PersonalView.Id.ToString(),
+                    Migrated = value
+                }) ;
+            }
+        }
 
         internal Entity PersonalView { get; set; }
 
@@ -95,11 +111,11 @@ namespace PersonalViewMigrationTool.Dto
                     {
                         ParentNodeId = PersonalView.Id.ToString(),
                         NodeId = $"{PersonalView.Id}_{newPoA.Principal.Id}",
-                        NodeText = $"{newPoA.Principal.LogicalName}: {newPoA.Principal.Id}",
+                        NodeText = $"shared with {newPoA.Principal.LogicalName}: {newPoA.Principal.Id}",
                         NotMigrateReason = NotMigrateReason,
                         WillMigrate = WillBeMigrated
                     });
-                }     
+                }
             }
         }
     }

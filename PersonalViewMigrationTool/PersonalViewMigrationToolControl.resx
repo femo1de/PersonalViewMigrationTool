@@ -151,4 +151,17 @@
         TgDQASA1MVpwzwAAAABJRU5ErkJggg==
 </value>
   </data>
+  <data name="lblWarning.Text" xml:space="preserve">
+    <value>Attention: This is an early version. 
+Use at your own risk and always test on a non-production system first.
+
+Remember to use accounts with admin privileges to enable 
+impersonation.
+
+Click on the buttons from top till bottom.
+</value>
+  </data>
+  <metadata name="cmsOverviewTab.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>147, 17</value>
+  </metadata>
 </root>

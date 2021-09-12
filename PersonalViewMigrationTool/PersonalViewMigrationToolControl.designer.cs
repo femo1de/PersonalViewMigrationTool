@@ -31,9 +31,10 @@ namespace PersonalViewMigrationTool
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PersonalViewMigrationToolControl));
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Users");
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Teams");
+            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Users");
+            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Teams");
             this.toolStripMenu = new System.Windows.Forms.ToolStrip();
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -65,6 +66,9 @@ namespace PersonalViewMigrationTool
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.treeView1 = new System.Windows.Forms.TreeView();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.cmsOverviewTab = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.expandAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.collapseAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -72,6 +76,7 @@ namespace PersonalViewMigrationTool
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
+            this.cmsOverviewTab.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStripMenu
@@ -195,7 +200,7 @@ namespace PersonalViewMigrationTool
             this.lbDebugOutput.Name = "lbDebugOutput";
             this.lbDebugOutput.ScrollAlwaysVisible = true;
             this.lbDebugOutput.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.lbDebugOutput.Size = new System.Drawing.Size(733, 709);
+            this.lbDebugOutput.Size = new System.Drawing.Size(941, 814);
             this.lbDebugOutput.TabIndex = 11;
             this.lbDebugOutput.TabStop = false;
             // 
@@ -350,11 +355,9 @@ namespace PersonalViewMigrationTool
             this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblWarning.Location = new System.Drawing.Point(3, 112);
             this.lblWarning.Name = "lblWarning";
-            this.lblWarning.Size = new System.Drawing.Size(334, 65);
+            this.lblWarning.Size = new System.Drawing.Size(334, 91);
             this.lblWarning.TabIndex = 0;
-            this.lblWarning.Text = "Attention: This is an early PoC. \r\nUse at your own risk and always test on a non-" +
-    "production system first.\r\n\r\nRemember to use accounts with admin privileges to en" +
-    "able \r\nimpersonation.\r\n";
+            this.lblWarning.Text = resources.GetString("lblWarning.Text");
             // 
             // tabControl1
             // 
@@ -382,16 +385,17 @@ namespace PersonalViewMigrationTool
             // 
             // treeView1
             // 
+            this.treeView1.ContextMenuStrip = this.cmsOverviewTab;
             this.treeView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeView1.Location = new System.Drawing.Point(3, 3);
             this.treeView1.Name = "treeView1";
-            treeNode1.Name = "nUsers";
-            treeNode1.Text = "Users";
-            treeNode2.Name = "nTeams";
-            treeNode2.Text = "Teams";
+            treeNode3.Name = "nUsers";
+            treeNode3.Text = "Users";
+            treeNode4.Name = "nTeams";
+            treeNode4.Text = "Teams";
             this.treeView1.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode1,
-            treeNode2});
+            treeNode3,
+            treeNode4});
             this.treeView1.ShowNodeToolTips = true;
             this.treeView1.Size = new System.Drawing.Size(941, 814);
             this.treeView1.TabIndex = 0;
@@ -402,10 +406,32 @@ namespace PersonalViewMigrationTool
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(739, 715);
+            this.tabPage2.Size = new System.Drawing.Size(947, 820);
             this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "Output";
+            this.tabPage2.Text = "Log Output";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // cmsOverviewTab
+            // 
+            this.cmsOverviewTab.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.expandAllToolStripMenuItem,
+            this.collapseAllToolStripMenuItem});
+            this.cmsOverviewTab.Name = "cmsOverviewTab";
+            this.cmsOverviewTab.Size = new System.Drawing.Size(137, 48);
+            // 
+            // expandAllToolStripMenuItem
+            // 
+            this.expandAllToolStripMenuItem.Name = "expandAllToolStripMenuItem";
+            this.expandAllToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.expandAllToolStripMenuItem.Text = "Expand All";
+            this.expandAllToolStripMenuItem.Click += new System.EventHandler(this.expandAllToolStripMenuItem_Click);
+            // 
+            // collapseAllToolStripMenuItem
+            // 
+            this.collapseAllToolStripMenuItem.Name = "collapseAllToolStripMenuItem";
+            this.collapseAllToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.collapseAllToolStripMenuItem.Text = "Collapse All";
+            this.collapseAllToolStripMenuItem.Click += new System.EventHandler(this.collapseAllToolStripMenuItem_Click);
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -426,6 +452,7 @@ namespace PersonalViewMigrationTool
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.tabPage2.ResumeLayout(false);
+            this.cmsOverviewTab.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -463,5 +490,8 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.TreeView treeView1;
         private System.Windows.Forms.TabPage tabPage2;
+        private System.Windows.Forms.ContextMenuStrip cmsOverviewTab;
+        private System.Windows.Forms.ToolStripMenuItem expandAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem collapseAllToolStripMenuItem;
     }
 }

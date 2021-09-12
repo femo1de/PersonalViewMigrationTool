@@ -7,5 +7,6 @@
         internal bool WillMigrate { get ; set; }
         internal string NotMigrateReason { get ; set ; }
         internal string NodeText { get ; set ; }
+        internal bool Migrated { get; set; } = false;
     }
 }

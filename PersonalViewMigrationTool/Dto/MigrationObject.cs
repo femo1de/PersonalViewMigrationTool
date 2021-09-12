@@ -9,6 +9,8 @@ namespace PersonalViewMigrationTool.Dto
 
         private string _notMigrateReason;
 
+        private bool migrationResult;
+
         private readonly Action<NodeUpdateObject> updateNodeUi;
 
         internal string ParentNodeId { get => (OwnerLogicalName == "systemuser") ? "nUsers" : "nTeams"; }
@@ -67,7 +69,21 @@ namespace PersonalViewMigrationTool.Dto
 
         internal string OwnerName { get; set; }
 
-        internal bool  MigrationResult { get; set; }
+        internal bool MigrationResult
+        {
+            get => migrationResult;
+            set
+            {
+                migrationResult = value;
+
+                // update ui
+                updateNodeUi(new NodeUpdateObject()
+                {
+                    NodeId = OwnerId.ToString(),
+                    Migrated = value
+                });
+            }
+        }
 
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
 

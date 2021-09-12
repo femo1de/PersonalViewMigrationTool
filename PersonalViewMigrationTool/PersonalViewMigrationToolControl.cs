@@ -198,6 +198,16 @@ namespace PersonalViewMigrationTool
             Process.Start("https://github.com/femo1de/PersonalViewMigrationTool/issues/new");
         }
 
+        private void expandAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.ExpandAll();
+        }
+
+        private void collapseAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.CollapseAll();
+        }
+
         #endregion
 
         #region Business Logic
@@ -419,12 +429,16 @@ namespace PersonalViewMigrationTool
                         parentNode.Expand();
                     }
 
-                    // node is created at that point, update it
+                    // --- node is created at that point, update it ---
 
                     if (!nodeUpdateObject.WillMigrate)
                     {
                         targetNode.ForeColor = System.Drawing.Color.DimGray;
                         targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                    }
+                    if (nodeUpdateObject.Migrated)
+                    {
+                        targetNode.ForeColor = System.Drawing.Color.Green;
                     }
                 }
                 catch (Exception ex)
@@ -647,6 +661,7 @@ namespace PersonalViewMigrationTool
                 var impersonatedConnection = targetConnection.GetCrmServiceClient();
                 impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
+                // --- upsert personal view ---
                 foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                 {
                     var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
@@ -654,10 +669,10 @@ namespace PersonalViewMigrationTool
 
                     upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
 
-                    impersonatedConnection.Upsert(upsertRecord);
+                    var createdViewId = impersonatedConnection.Upsert(upsertRecord);
                     currentViewCount++;
 
-                    // migrate all sharings
+                    // --- migrate the sharings of this view ----
                     foreach (var poa in personalViewMigrationObject.MappedSharings)
                     {
                         impersonatedConnection.Execute(new GrantAccessRequest()
@@ -667,12 +682,22 @@ namespace PersonalViewMigrationTool
                                 AccessMask = poa.AccessMask,
                                 Principal = poa.Principal
                             },
-                            Target = upsertRecord.ToEntityReference() // note this only works because the ID of the record is the same, better to use the id of the newly created record instead.
+                            Target = new EntityReference(upsertRecord.LogicalName, createdViewId)
                         });
                         currentPoACount++;
+                        // todo - implement status of individual poa nodes
                     }
+
+                    // update the migration status of the view
+
+                    personalViewMigrationObject.MigrationResult = true;
+
                     CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                 }
+
+                // entire user/team incl. child views and poa have been  migrated at this point
+                migrationObject.MigrationResult = true;
+
             }
             CustomLog("----------------------");
             CustomLog($"Migration completed. Migrated {currentViewCount} views owned by {currentUserTeamCount} users or teams and shared them with {currentPoACount} users or teams.");
@@ -762,5 +787,6 @@ namespace PersonalViewMigrationTool
         }
 
         #endregion
+
     }
 }
