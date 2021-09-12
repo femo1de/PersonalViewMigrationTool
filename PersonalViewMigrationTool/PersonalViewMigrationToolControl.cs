@@ -148,7 +148,7 @@ namespace PersonalViewMigrationTool
 
             WorkAsync(new WorkAsyncInfo()
             {
-                Message = "Mapping Users and Loading Personal Views",
+                Message = "Loading Personal Views",
                 Work = RetrievePersonalViews,
                 PostWorkCallBack = OnPersonalViewsRetrieved
             });
@@ -284,83 +284,9 @@ namespace PersonalViewMigrationTool
             var sourceUsers = RetrieveUsersAndTeams(Service);
             var destinationUsers = RetrieveUsersAndTeams(AdditionalConnectionDetails[0].GetCrmServiceClient());
 
-            args.Result = new object[] { sourceUsers, destinationUsers };
-        }
+            sourceUserAndTeamRecords = sourceUsers;
+            targetUserAndTeamRecords = destinationUsers;
 
-        private void OnUsersRetrieved(RunWorkerCompletedEventArgs obj)
-        {
-            if (obj.Cancelled)
-            {
-                return;
-            }
-
-            var results = (object[])obj.Result;
-
-            sourceUserAndTeamRecords = (List<Entity>)results[0];
-            targetUserAndTeamRecords = (List<Entity>)results[1];
-
-            CustomLog($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
-            CustomLog($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
-
-            tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users / teams retrieved";
-
-            var usersNotInTarget = sourceUserAndTeamRecords.Where(u => !targetUserAndTeamRecords.Any(x => x.Id == u.Id)).Select(x => x).ToList();
-
-            if (usersNotInTarget.Count > 0)
-            {
-                CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system.");
-            }
-            btnLoadPersonalViews.Enabled = true;
-            CustomLog("----------------------");
-        }
-
-        private void UpdateNode(NodeUpdateObject nodeUpdateObject)
-        {
-            if (treeView1.InvokeRequired)
-            {
-                treeView1.Invoke(new _updateTreeNodeDelegate(UpdateNode), nodeUpdateObject);
-            }
-            else
-            {
-                try
-                {
-                    var targetNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
-                    if (targetNode == null)
-                    {
-                        // node needs to be created
-
-                        // get parent node
-                        var parentNode = treeView1.Nodes.Find(nodeUpdateObject.ParentNodeId, true).FirstOrDefault();
-
-                        if (parentNode == null) throw new Exception("Tried to add a node under a parent that does not exist.");
-
-                        targetNode = new TreeNode()
-                        {
-                            Name = nodeUpdateObject.NodeId,
-                            Text = nodeUpdateObject.NodeText
-                        };
-                        parentNode.Nodes.Add(targetNode);
-                        parentNode.Expand();
-                    }
-
-                    // node is created at that point, update it
-
-                    if (!nodeUpdateObject.WillMigrate)
-                    {
-                        targetNode.ForeColor = System.Drawing.Color.DimGray;
-                        targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError("Exception building the TreeView. This is not critical and the migration can resume.");
-                    LogError(ex.Message + " " + ex.StackTrace);
-                }
-            }
-        }
-
-        private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
-        {
             CustomLog("Mapping users / teams from source to target...");
 
             // source might still be impersonating someone. Force CallerId to be empty
@@ -440,11 +366,81 @@ namespace PersonalViewMigrationTool
             }
 
             CustomLog("Completed mapping users and teams.");
+        }
+
+        private void OnUsersRetrieved(RunWorkerCompletedEventArgs obj)
+        {
+            if (obj.Cancelled)
+            {
+                return;
+            }
+
+            CustomLog($"Retrieved {sourceUserAndTeamRecords.Count} users/teams from the source system.");
+            CustomLog($"Retrieved {targetUserAndTeamRecords.Count} users/teams from the target system.");
+
+            tbUsersLoadStatus.Text = $"{sourceUserAndTeamRecords.Count} users / teams retrieved";
+
+            var usersNotInTarget = sourceUserAndTeamRecords.Where(u => !targetUserAndTeamRecords.Any(x => x.Id == u.Id)).Select(x => x).ToList();
+
+            if (usersNotInTarget.Count > 0)
+            {
+                CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system.");
+            }
+            btnLoadPersonalViews.Enabled = true;
+            CustomLog("----------------------");
+        }
+
+        private void UpdateNode(NodeUpdateObject nodeUpdateObject)
+        {
+            if (treeView1.InvokeRequired)
+            {
+                treeView1.Invoke(new _updateTreeNodeDelegate(UpdateNode), nodeUpdateObject);
+            }
+            else
+            {
+                try
+                {
+                    var targetNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
+                    if (targetNode == null)
+                    {
+                        // node needs to be created
+
+                        // get parent node
+                        var parentNode = treeView1.Nodes.Find(nodeUpdateObject.ParentNodeId, true).FirstOrDefault();
+
+                        if (parentNode == null) throw new Exception("Tried to add a node under a parent that does not exist.");
+
+                        targetNode = new TreeNode()
+                        {
+                            Name = nodeUpdateObject.NodeId,
+                            Text = nodeUpdateObject.NodeText
+                        };
+                        parentNode.Nodes.Add(targetNode);
+                        parentNode.Expand();
+                    }
+
+                    // node is created at that point, update it
+
+                    if (!nodeUpdateObject.WillMigrate)
+                    {
+                        targetNode.ForeColor = System.Drawing.Color.DimGray;
+                        targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError("Exception building the TreeView. This is not critical and the migration can resume.");
+                    LogError(ex.Message + " " + ex.StackTrace);
+                }
+            }
+        }
+
+        private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
+        {
             CustomLog("Retrieving personal views...");
             // mapping completed for the current user / team .. retrieve the personal views now
             foreach (var sourceUser in sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser"))
             {
-
                 var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
 
                 var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
@@ -462,7 +458,7 @@ namespace PersonalViewMigrationTool
                     userPersonalViews.ForEach(
                         x =>
                         {
-                            mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString()));
+                            mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
                         }
                     );
                 }
@@ -610,6 +606,7 @@ namespace PersonalViewMigrationTool
 
             CustomLog($"Done. Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PrincipalAccessObjects in total.");
         }
+ 
         private void OnSharingRetrieved(RunWorkerCompletedEventArgs obj)
         {
             tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
