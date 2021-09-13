@@ -449,34 +449,61 @@ namespace PersonalViewMigrationTool
             }
         }
 
+        //private void SetImpersonationViaInvoke(ConnectionDetail connectionDetail, Guid userToImpersonate)
+        //{
+        //    // workaround because xrmToolBox changes the UI when calling .Impersonate() which needs to be invoked if done via a background thread
+        //    if (tableLayoutPanel1.InvokeRequired)
+        //    {
+        //        tableLayoutPanel1.Invoke((Action<ConnectionDetail, Guid>)((x, y) => { SetImpersonationViaInvoke(x, y); }), connectionDetail, userToImpersonate);
+        //    }
+        //    else
+        //    {
+        //        connectionDetail.RemoveImpersonation();
+        //        connectionDetail.Impersonate(userToImpersonate);
+        //    }
+        //}
+
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Retrieving personal views...");
             // mapping completed for the current user / team .. retrieve the personal views now
             foreach (var sourceUser in sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser"))
             {
-                var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
-
-                var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
-                impersonatedSourceConnection.CallerId = sourceUser.Id;
-
-                var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUser.Id)));
-
-                if (!userPersonalViews.Any())
+                try
                 {
-                    mo.WillBeMigrated = false;
-                    mo.NotMigrateReason = "This user has no personal views that could be migrated.";
+                    var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
+
+                    // this might require invoke
+                    //SetImpersonationViaInvoke(sourceConnection, sourceUser.Id);
+                    
+                    sourceConnection.RemoveImpersonation();
+                    var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
+                    impersonatedSourceConnection.CallerId = sourceUser.Id;
+
+                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUser.Id)));
+
+                    if (!userPersonalViews.Any())
+                    {
+                        mo.WillBeMigrated = false;
+                        mo.NotMigrateReason = "This user has no personal views that could be migrated.";
+                    }
+                    else
+                    {
+                        userPersonalViews.ForEach(
+                            x =>
+                            {
+                                mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
+                            }
+                        );
+                    }
+                    CustomLog($"{sourceUser.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
+
                 }
-                else
+                catch (Exception ex)
                 {
-                    userPersonalViews.ForEach(
-                        x =>
-                        {
-                            mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
-                        }
-                    );
+                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal viws of: {sourceUser.Attributes["fullname"]}. Please see the logfile for the stracktrace. Operation will resume");
+                    LogError($"{ex.Message} {ex.StackTrace}");
                 }
-                CustomLog($"{sourceUser.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
             }
 
             CustomLog("Done.");
@@ -658,6 +685,7 @@ namespace PersonalViewMigrationTool
 
                 // impersonate the owner of this batch
                 CustomLog($"Migrating Views owned by User / Team with: {migrationObject.OwnerName}..");
+                targetConnection.RemoveImpersonation();
                 var impersonatedConnection = targetConnection.GetCrmServiceClient();
                 impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
