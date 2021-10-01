@@ -400,84 +400,20 @@ namespace PersonalViewMigrationTool
             CustomLog("----------------------");
         }
 
-        private void UpdateNode(NodeUpdateObject nodeUpdateObject)
-        {
-            if (treeView1.InvokeRequired)
-            {
-                treeView1.Invoke(new _updateTreeNodeDelegate(UpdateNode), nodeUpdateObject);
-            }
-            else
-            {
-                try
-                {
-                    var targetNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
-                    if (targetNode == null)
-                    {
-                        // node needs to be created
-
-                        // get parent node
-                        var parentNode = treeView1.Nodes.Find(nodeUpdateObject.ParentNodeId, true).FirstOrDefault();
-
-                        if (parentNode == null) throw new Exception("Tried to add a node under a parent that does not exist.");
-
-                        targetNode = new TreeNode()
-                        {
-                            Name = nodeUpdateObject.NodeId,
-                            Text = nodeUpdateObject.NodeText
-                        };
-                        parentNode.Nodes.Add(targetNode);
-                        parentNode.Expand();
-                    }
-
-                    // --- node is created at that point, update it ---
-
-                    if (!nodeUpdateObject.WillMigrate)
-                    {
-                        targetNode.ForeColor = System.Drawing.Color.DimGray;
-                        targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
-                    }
-                    if (nodeUpdateObject.Migrated)
-                    {
-                        targetNode.ForeColor = System.Drawing.Color.Green;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError("Exception building the TreeView. This is not critical and the migration can resume.");
-                    LogError(ex.Message + " " + ex.StackTrace);
-                }
-            }
-        }
-
-        //private void SetImpersonationViaInvoke(ConnectionDetail connectionDetail, Guid userToImpersonate)
-        //{
-        //    // workaround because xrmToolBox changes the UI when calling .Impersonate() which needs to be invoked if done via a background thread
-        //    if (tableLayoutPanel1.InvokeRequired)
-        //    {
-        //        tableLayoutPanel1.Invoke((Action<ConnectionDetail, Guid>)((x, y) => { SetImpersonationViaInvoke(x, y); }), connectionDetail, userToImpersonate);
-        //    }
-        //    else
-        //    {
-        //        connectionDetail.RemoveImpersonation();
-        //        connectionDetail.Impersonate(userToImpersonate);
-        //    }
-        //}
-
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Retrieving personal views...");
             // mapping completed for the current user / team .. retrieve the personal views now
+
+            sourceConnection.RemoveImpersonation();
+            var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
+
             foreach (var sourceUser in sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser"))
             {
                 try
                 {
                     var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
 
-                    // this might require invoke
-                    //SetImpersonationViaInvoke(sourceConnection, sourceUser.Id);
-                    
-                    sourceConnection.RemoveImpersonation();
-                    var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
                     impersonatedSourceConnection.CallerId = sourceUser.Id;
 
                     var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUser.Id)));
@@ -683,50 +619,66 @@ namespace PersonalViewMigrationTool
                     continue;
                 }
 
-                // impersonate the owner of this batch
-                CustomLog($"Migrating Views owned by User / Team with: {migrationObject.OwnerName}..");
-                targetConnection.RemoveImpersonation();
-                var impersonatedConnection = targetConnection.GetCrmServiceClient();
-                impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
-
-                // --- upsert personal view ---
-                foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
+                try
                 {
-                    var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
-                   "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
+                    // impersonate the owner of this batch
+                    CustomLog($"Migrating Views owned by User / Team with: {migrationObject.OwnerName}..");
+                    targetConnection.RemoveImpersonation();
+                    var impersonatedConnection = targetConnection.GetCrmServiceClient();
+                    impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
 
-                    upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
-
-                    var createdViewId = impersonatedConnection.Upsert(upsertRecord);
-                    currentViewCount++;
-
-                    // --- migrate the sharings of this view ----
-                    foreach (var poa in personalViewMigrationObject.MappedSharings)
+                    // --- upsert personal view ---
+                    foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                     {
-                        impersonatedConnection.Execute(new GrantAccessRequest()
+                        try
                         {
-                            PrincipalAccess = new PrincipalAccess()
+                            var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
+                                "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
+
+                            upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
+
+                            var createdViewId = impersonatedConnection.Upsert(upsertRecord);
+                            currentViewCount++;
+
+                            // --- migrate the sharings of this view ----
+                            foreach (var poa in personalViewMigrationObject.MappedSharings)
                             {
-                                AccessMask = poa.AccessMask,
-                                Principal = poa.Principal
-                            },
-                            Target = new EntityReference(upsertRecord.LogicalName, createdViewId)
-                        });
-                        currentPoACount++;
-                        // todo - implement status of individual poa nodes
+                                impersonatedConnection.Execute(new GrantAccessRequest()
+                                {
+                                    PrincipalAccess = new PrincipalAccess()
+                                    {
+                                        AccessMask = poa.AccessMask,
+                                        Principal = poa.Principal
+                                    },
+                                    Target = new EntityReference(upsertRecord.LogicalName, createdViewId)
+                                });
+                                currentPoACount++;
+                                // todo - implement status of individual poa nodes
+                            }
+
+                            // update the migration status of the view
+
+                            personalViewMigrationObject.MigrationResult = true;
+
+                            CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
+                        }
+                        catch (Exception ex)
+                        {
+                            CustomLog($"Exception while migrating view {personalViewMigrationObject.PersonalViewName}: {ex.GetType().Name}. Operation will continue, please see log for exception details.");
+                            LogError($"{ex.Message} {ex.StackTrace}");
+                        }
                     }
 
-                    // update the migration status of the view
-
-                    personalViewMigrationObject.MigrationResult = true;
-
-                    CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
+                    // entire user/team incl. child views and poa have been  migrated at this point
+                    migrationObject.MigrationResult = true;
                 }
-
-                // entire user/team incl. child views and poa have been  migrated at this point
-                migrationObject.MigrationResult = true;
-
+                catch (Exception ex)
+                {
+                    CustomLog($"Exception while migrating user {migrationObject.OwnerName}: {ex.GetType().Name}. Operation will continue, please see log for exception details.");
+                    LogError($"{ex.Message} {ex.StackTrace}");
+                }
             }
+
             CustomLog("----------------------");
             CustomLog($"Migration completed. Migrated {currentViewCount} views owned by {currentUserTeamCount} users or teams and shared them with {currentPoACount} users or teams.");
 
@@ -740,6 +692,7 @@ namespace PersonalViewMigrationTool
                 MessageBox.Show("Migration completed successfully", "", MessageBoxButtons.OK);
             }
         }
+      
         private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
         {
             btnConnectSource.Enabled = false;
@@ -787,6 +740,55 @@ namespace PersonalViewMigrationTool
             allRecords.AddRange(service.RetrieveAll(teamsQuery));
 
             return allRecords;
+        }
+
+        private void UpdateNode(NodeUpdateObject nodeUpdateObject)
+        {
+            if (treeView1.InvokeRequired)
+            {
+                treeView1.Invoke(new _updateTreeNodeDelegate(UpdateNode), nodeUpdateObject);
+            }
+            else
+            {
+                try
+                {
+                    var targetNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
+                    if (targetNode == null)
+                    {
+                        // node needs to be created
+
+                        // get parent node
+                        var parentNode = treeView1.Nodes.Find(nodeUpdateObject.ParentNodeId, true).FirstOrDefault();
+
+                        if (parentNode == null) throw new Exception("Tried to add a node under a parent that does not exist.");
+
+                        targetNode = new TreeNode()
+                        {
+                            Name = nodeUpdateObject.NodeId,
+                            Text = nodeUpdateObject.NodeText
+                        };
+                        parentNode.Nodes.Add(targetNode);
+                        parentNode.Expand();
+                    }
+
+                    // --- node is created at that point, update it ---
+
+                    if (!nodeUpdateObject.WillMigrate)
+                    {
+                        targetNode.ForeColor = System.Drawing.Color.DimGray;
+                        targetNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                    }
+                    if (nodeUpdateObject.Migrated)
+                    {
+                        targetNode.ForeColor = System.Drawing.Color.Green;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError("Exception building the TreeView. This is not critical and the migration can resume.");
+                    LogError(ex.Message + " " + ex.StackTrace);
+                }
+            }
         }
 
         #endregion
