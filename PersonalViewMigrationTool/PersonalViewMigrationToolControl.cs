@@ -33,11 +33,11 @@ namespace PersonalViewMigrationTool
         private delegate void _updateLogWindowDelegate(string msg);
 
         // TODO: Limit columns
-        const string fetch_PersonalViewsCreatedByUser = @"
+        const string fetch_PersonalViewsOwnedByUserOrTeam = @"
             <fetch>
               <entity name='userquery'>
                 <filter>
-                  <condition attribute='createdby' operator='eq' value='{0}'/>
+                  <condition attribute='ownerid' operator='eq' value='{0}'/>
                 </filter>
               </entity>
             </fetch>";
@@ -308,6 +308,16 @@ namespace PersonalViewMigrationTool
                 if (sourceUserOrTeam.LogicalName == "systemuser")
                 {
                     var mo = new MigrationObject(UpdateNode, sourceUserOrTeam.LogicalName, sourceUserOrTeam.Id, sourceUserOrTeam.Attributes["fullname"].ToString());
+
+                    // skip this user if it is disabled
+                    if ((bool)sourceUserOrTeam.Attributes["isdisabled"])
+                    {
+                        mo.WillBeMigrated = false;
+                        mo.NotMigrateReason = "This user is disabled on the source system.";
+                        migrationObjects.Add(mo);
+                        continue;
+                    }
+
                     migrationObjects.Add(mo);
 
                     // try to map user via id
@@ -416,7 +426,7 @@ namespace PersonalViewMigrationTool
 
                     impersonatedSourceConnection.CallerId = sourceUser.Id;
 
-                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsCreatedByUser, sourceUser.Id)));
+                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsOwnedByUserOrTeam, sourceUser.Id)));
 
                     if (!userPersonalViews.Any())
                     {
@@ -437,13 +447,27 @@ namespace PersonalViewMigrationTool
                 }
                 catch (Exception ex)
                 {
-                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal viws of: {sourceUser.Attributes["fullname"]}. Please see the logfile for the stracktrace. Operation will resume");
+                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceUser.Attributes["fullname"]}. Please see the logfile for the stracktrace. Operation will resume");
+                    LogError($"{ex.Message} {ex.StackTrace}");
+                }
+            }
+            foreach (var sourceTeam in sourceUserAndTeamRecords.Where(x => x.LogicalName == "team"))
+            {
+                // now get all the views that are owned by a team
+
+                try
+                {
+                    // not implemented yet
+                }
+                catch (Exception ex)
+                {
+                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceTeam.Attributes["name"]}. Please see the logfile for the stracktrace. Operation will resume");
                     LogError($"{ex.Message} {ex.StackTrace}");
                 }
             }
 
             CustomLog("Done.");
-            CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, created by {migrationObjects.Count} users that can be mapped.");
+            CustomLog($"Retrieved a total of {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} personal views, owned by {migrationObjects.Count} users or teams.");
         }
 
         private void OnPersonalViewsRetrieved(RunWorkerCompletedEventArgs obj)
@@ -633,7 +657,7 @@ namespace PersonalViewMigrationTool
                         try
                         {
                             var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
-                                "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
+                                "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid", "createdby");
 
                             upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
 
@@ -709,7 +733,7 @@ namespace PersonalViewMigrationTool
         {
             var usersQuery = new QueryExpression("systemuser")
             {
-                ColumnSet = new ColumnSet("fullname", "domainname", "internalemailaddress"),
+                ColumnSet = new ColumnSet("fullname", "domainname", "internalemailaddress", "isdisabled"),
                 PageInfo = new PagingInfo()
                 {
                     Count = 5000,
@@ -717,16 +741,13 @@ namespace PersonalViewMigrationTool
                 }
             };
 
-            usersQuery.Criteria.AddCondition("domainname", ConditionOperator.NotNull);
-            usersQuery.Criteria.AddCondition("domainname", ConditionOperator.NotEqual, string.Empty);
-            usersQuery.Criteria.AddCondition("isdisabled", ConditionOperator.Equal, false);
             usersQuery.AddOrder("fullname", OrderType.Ascending);
 
             var allRecords = service.RetrieveAll(usersQuery);
 
             var teamsQuery = new QueryExpression("team")
             {
-                ColumnSet = new ColumnSet("name"),
+                ColumnSet = new ColumnSet("name", "administratorid"),
                 PageInfo = new PagingInfo()
                 {
                     Count = 5000,
