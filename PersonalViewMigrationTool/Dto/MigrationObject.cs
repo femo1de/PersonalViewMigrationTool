@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace PersonalViewMigrationTool.Dto
 {
+    /// <summary>
+    /// Holds a systemuser or team and a list of the personalviews owned by it. 
+    /// </summary>
     internal class MigrationObject
     {
         private bool _willBeMigrated = true;
@@ -31,7 +34,6 @@ namespace PersonalViewMigrationTool.Dto
                 // trigger refresh of the tree view
                 if (updateNodeUi != null) updateNodeUi.Invoke(new NodeUpdateObject()
                 {
-
                     ParentNodeId = (OwnerLogicalName == "systemuser") ? "nUsers" : "nTeams",
                     NodeId = OwnerId.ToString(),
                     NodeText = OwnerName,
@@ -87,6 +89,8 @@ namespace PersonalViewMigrationTool.Dto
 
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
 
+    
+        // ctor
         public MigrationObject(Action<NodeUpdateObject> UpdateUiDelegate, string ownerLogicalName, Guid ownerId, string ownerName)
         {
             updateNodeUi = UpdateUiDelegate;

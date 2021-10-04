@@ -6,6 +6,7 @@ using PersonalViewMigrationTool.Dto;
 using PersonalViewMigrationTool.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
@@ -28,7 +29,7 @@ namespace PersonalViewMigrationTool
         private List<Entity> targetUserAndTeamRecords = new List<Entity>();
         private ConnectionDetail sourceConnection;
         private ConnectionDetail targetConnection;
-        private List<MigrationObject> migrationObjects = new List<MigrationObject>();
+        private ObservableCollection<MigrationObject> migrationObjects = new ObservableCollection<MigrationObject>();
         private delegate void _updateTreeNodeDelegate(NodeUpdateObject nodeUpdateObject);
         private delegate void _updateLogWindowDelegate(string msg);
 
@@ -50,6 +51,42 @@ namespace PersonalViewMigrationTool
             InitializeComponent();
             LogInfo("Plugin initialized.");
             CustomLog("Executing Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+
+            // register eventhandler to handle UI refreshes
+            migrationObjects.CollectionChanged += MigrationObjects_CollectionChanged;
+        }
+        #endregion
+
+        #region Event Handlers
+
+        private void MigrationObjects_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (treeView1.InvokeRequired)
+            {
+                treeView1.Invoke(new Action(() => MigrationObjects_CollectionChanged(sender, e)));
+            }
+            else
+            {
+                switch (e.Action)
+                {
+                    case NotifyCollectionChangedAction.Add:
+                        break;
+                    case NotifyCollectionChangedAction.Remove:
+                        break;
+                    case NotifyCollectionChangedAction.Replace:
+                        break;
+                    case NotifyCollectionChangedAction.Move:
+                        break;
+                    case NotifyCollectionChangedAction.Reset:
+                        treeView1.Nodes.Clear();
+                        // always add the nUsers and nTeams node
+                        treeView1.Nodes.Add(new TreeNode("Users") { Name = "nUsers" });
+                        treeView1.Nodes.Add(new TreeNode("Teams") { Name = "nTeams" });
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         #endregion
@@ -280,7 +317,6 @@ namespace PersonalViewMigrationTool
                 }
             }
         }
-
         private void RetrieveUsers(BackgroundWorker worked, DoWorkEventArgs args)
         {
             if (Service == null)
@@ -657,7 +693,7 @@ namespace PersonalViewMigrationTool
                         try
                         {
                             var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
-                                "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid", "createdby");
+                                "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
 
                             upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
 

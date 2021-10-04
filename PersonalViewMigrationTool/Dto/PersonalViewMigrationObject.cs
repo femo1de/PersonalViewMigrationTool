@@ -6,7 +6,9 @@ using System.Collections.ObjectModel;
 
 namespace PersonalViewMigrationTool.Dto
 {
-
+    /// <summary>
+    /// Represents a personal view and holds a list users / teams this view has been shared with
+    /// </summary>
     internal class PersonalViewMigrationObject
     {
         private readonly Action<NodeUpdateObject> updateNodeUi;
