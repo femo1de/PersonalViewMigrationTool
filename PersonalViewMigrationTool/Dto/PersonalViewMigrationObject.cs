@@ -1,123 +1,57 @@
 ﻿using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace PersonalViewMigrationTool.Dto
 {
     /// <summary>
     /// Represents a personal view and holds a list users / teams this view has been shared with
     /// </summary>
-    internal class PersonalViewMigrationObject
+    internal class PersonalViewMigrationObject : MigrationObjectBase
     {
-        private readonly Action<NodeUpdateObject> updateNodeUi;
-
-        private bool willBeMigrated = true;
-
-        private string notMigrateReason;
-
         internal MigrationObject _parentMigrationObject;
-
-        private bool migrationResult = false;
-
-        internal bool MigrationResult
-        {
-            get => migrationResult;
-            set
-            {
-                migrationResult = value;
-
-                // update ui
-                updateNodeUi(new NodeUpdateObject()
-                {
-                    NodeId = PersonalView.Id.ToString(),
-                    Migrated = value
-                }) ;
-            }
-        }
 
         internal Entity PersonalView { get; set; }
 
         internal string PersonalViewName { get; set; }
 
-        internal bool WillBeMigrated
-        {
-            get => willBeMigrated;
-            set
-            {
-                willBeMigrated = value;
-                updateNodeUi(new NodeUpdateObject()
-                {
-                    ParentNodeId = _parentMigrationObject.OwnerId.ToString(),
-                    NodeId = PersonalView.Id.ToString(),
-                    NodeText = PersonalViewName,
-                    NotMigrateReason = NotMigrateReason,
-                    WillMigrate = value
-                });
-            }
-        }
-
-        internal string NotMigrateReason
-        {
-            get => notMigrateReason;
-            set
-            {
-                notMigrateReason = value;
-                updateNodeUi(new NodeUpdateObject()
-                {
-                    ParentNodeId = _parentMigrationObject.OwnerId.ToString(),
-                    NodeId = PersonalView.Id.ToString(),
-                    NodeText = PersonalViewName,
-                    NotMigrateReason = value,
-                    WillMigrate = WillBeMigrated
-                });
-            }
-        }
-
         internal ObservableCollection<PrincipalAccess> Sharings { get; set; } = new ObservableCollection<PrincipalAccess>();
 
-        internal ObservableCollection<PrincipalAccess> MappedSharings { get; set; } = new ObservableCollection<PrincipalAccess>();
+        internal ObservableCollection<SharingMigrationObject> MappedSharings { get; set; } = new ObservableCollection<SharingMigrationObject>();
+
+        #region ctor
 
         internal PersonalViewMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate, MigrationObject parentMigrationObject, Entity personalView, string personalViewName, bool willBeMigrated = false)
+            : base(updateNodeUiDelegate)
         {
-            updateNodeUi = updateNodeUiDelegate;
             _parentMigrationObject = parentMigrationObject;
             PersonalView = personalView;
             PersonalViewName = personalViewName;
+            ElementId = PersonalView.Id.ToString();
 
             // ctor being called means this needs to be added to the treeview. this needs to be called after the properties have been initialized!
-            updateNodeUi(new NodeUpdateObject()
+            updateNodeUiDelegate(new NodeUpdateObject()
             {
+                MigrationObjectBase = this,
                 ParentNodeId = _parentMigrationObject.OwnerId.ToString(),
-                NodeId = PersonalView.Id.ToString(),
                 NodeText = PersonalViewName,
-                NotMigrateReason = NotMigrateReason,
-                WillMigrate = WillBeMigrated
+                UpdateReason= UpdateReason.AddedToList
             });
-            WillBeMigrated = willBeMigrated;
 
-            MappedSharings.CollectionChanged += MappedSharings_CollectionChanged;
+            // this needs to happen after the node object is created!
+            WillBeMigrated = willBeMigrated;
         }
 
-        private void MappedSharings_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        #endregion
+
+        private void MappedSharings_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             // removing PoA from the list is not supported currently
-            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+            if (e.Action == NotifyCollectionChangedAction.Reset)
             {
-                foreach (var newItem in e.NewItems)
-                {
-                    var newPoA = (PrincipalAccess)newItem;
-
-                    updateNodeUi(new NodeUpdateObject()
-                    {
-                        ParentNodeId = PersonalView.Id.ToString(),
-                        NodeId = $"{PersonalView.Id}_{newPoA.Principal.Id}",
-                        NodeText = $"shared with {newPoA.Principal.LogicalName}: {newPoA.Principal.Id}",
-                        NotMigrateReason = NotMigrateReason,
-                        WillMigrate = WillBeMigrated
-                    });
-                }
+                // not implemented yet. Pressing the load sharings button twice will result in duplicate values
             }
         }
     }

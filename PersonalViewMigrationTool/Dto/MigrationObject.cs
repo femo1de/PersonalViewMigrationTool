@@ -6,62 +6,9 @@ namespace PersonalViewMigrationTool.Dto
     /// <summary>
     /// Holds a systemuser or team and a list of the personalviews owned by it. 
     /// </summary>
-    internal class MigrationObject
+    internal class MigrationObject : MigrationObjectBase
     {
-        private bool _willBeMigrated = true;
-
-        private string _notMigrateReason;
-
-        private bool migrationResult;
-
-        private readonly Action<NodeUpdateObject> updateNodeUi;
-
         internal string ParentNodeId { get => (OwnerLogicalName == "systemuser") ? "nUsers" : "nTeams"; }
-
-        internal bool WillBeMigrated
-        {
-            get => _willBeMigrated;
-            set
-            {
-                _willBeMigrated = value;
-
-                if (!value)
-                {
-                    // if this user can not be migrated, that means none of his views will be migrated
-                    PersonalViewsMigrationObjects.ForEach(x => x.WillBeMigrated = false);
-                }
-
-                // trigger refresh of the tree view
-                if (updateNodeUi != null) updateNodeUi.Invoke(new NodeUpdateObject()
-                {
-                    ParentNodeId = (OwnerLogicalName == "systemuser") ? "nUsers" : "nTeams",
-                    NodeId = OwnerId.ToString(),
-                    NodeText = OwnerName,
-                    NotMigrateReason = NotMigrateReason,
-                    WillMigrate = value
-                });
-            }
-        }
-
-        internal string NotMigrateReason
-        {
-            get => _notMigrateReason;
-            set
-            {
-                _notMigrateReason = value;
-
-                // trigger refresh of the tree view
-                if (updateNodeUi != null) updateNodeUi.Invoke(new NodeUpdateObject()
-                {
-
-                    ParentNodeId = (OwnerLogicalName == "systemuser") ? "nUsers" : "nTeams",
-                    NodeId = OwnerId.ToString(),
-                    NodeText = OwnerName,
-                    NotMigrateReason = value,
-                    WillMigrate = WillBeMigrated
-                });
-            }
-        }
 
         internal string OwnerLogicalName { get; set; }
 
@@ -71,42 +18,27 @@ namespace PersonalViewMigrationTool.Dto
 
         internal string OwnerName { get; set; }
 
-        internal bool MigrationResult
-        {
-            get => migrationResult;
-            set
-            {
-                migrationResult = value;
-
-                // update ui
-                updateNodeUi(new NodeUpdateObject()
-                {
-                    NodeId = OwnerId.ToString(),
-                    Migrated = value
-                });
-            }
-        }
-
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
 
-    
-        // ctor
-        public MigrationObject(Action<NodeUpdateObject> UpdateUiDelegate, string ownerLogicalName, Guid ownerId, string ownerName)
+        #region ctor
+        public MigrationObject(Action<NodeUpdateObject> UpdateUiDelegate, string ownerLogicalName, Guid ownerId, string ownerName, bool willBeMigrated = false) : base(UpdateUiDelegate)
         {
-            updateNodeUi = UpdateUiDelegate;
             OwnerLogicalName = ownerLogicalName;
             OwnerId = ownerId;
             OwnerName = ownerName;
+            ElementId = ownerId.ToString();
 
             // trigger refresh of the tree view
-            if (updateNodeUi != null) updateNodeUi.Invoke(new NodeUpdateObject()
-            {
+            if (UpdateUiDelegate != null) UpdateUiDelegate.Invoke(new NodeUpdateObject()
+            {   
+                MigrationObjectBase = this,
                 ParentNodeId = ParentNodeId,
-                NodeId = OwnerId.ToString(),
                 NodeText = OwnerName,
-                NotMigrateReason = NotMigrateReason,
-                WillMigrate = WillBeMigrated
+                UpdateReason= UpdateReason.AddedToList
             });
+            // this needs to happen after the node object is created!
+            WillBeMigrated = willBeMigrated;
         }
+        #endregion
     }
 }
