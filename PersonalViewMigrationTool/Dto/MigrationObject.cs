@@ -12,9 +12,9 @@ namespace PersonalViewMigrationTool.Dto
 
         internal string OwnerLogicalName { get; set; }
 
-        internal Guid MappedOwnerId { get; set; }
+        internal Guid TargetOwnerId { get; set; }
 
-        internal Guid OwnerId { get; set; }
+        internal Guid SourceOwnerId { get; set; }
 
         internal string OwnerName { get; set; }
 
@@ -24,7 +24,7 @@ namespace PersonalViewMigrationTool.Dto
         public MigrationObject(Action<NodeUpdateObject> UpdateUiDelegate, string ownerLogicalName, Guid ownerId, string ownerName, bool willBeMigrated = false) : base(UpdateUiDelegate)
         {
             OwnerLogicalName = ownerLogicalName;
-            OwnerId = ownerId;
+            SourceOwnerId = ownerId;
             OwnerName = ownerName;
             ElementId = ownerId.ToString();
 

@@ -35,7 +35,7 @@ namespace PersonalViewMigrationTool.Dto
             updateNodeUiDelegate(new NodeUpdateObject()
             {
                 MigrationObjectBase = this,
-                ParentNodeId = _parentMigrationObject.OwnerId.ToString(),
+                ParentNodeId = _parentMigrationObject.SourceOwnerId.ToString(),
                 NodeText = PersonalViewName,
                 UpdateReason= UpdateReason.AddedToList
             });

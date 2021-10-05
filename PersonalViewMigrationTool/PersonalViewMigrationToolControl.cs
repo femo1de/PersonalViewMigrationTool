@@ -359,7 +359,7 @@ namespace PersonalViewMigrationTool
                     // try to map user via id
                     if (targetUserAndTeamRecords.Any(x => x.Id == sourceUserOrTeam.Id))
                     {
-                        mo.MappedOwnerId = sourceUserOrTeam.Id;
+                        mo.TargetOwnerId = sourceUserOrTeam.Id;
                         mo.WillBeMigrated = true;
                     }
 
@@ -371,7 +371,7 @@ namespace PersonalViewMigrationTool
 
                         if (mappingCandidate != null)
                         {
-                            mo.MappedOwnerId = mappingCandidate.Id;
+                            mo.TargetOwnerId = mappingCandidate.Id;
                             mo.WillBeMigrated = true;
                             CustomLog($"   Mapped user via Domain Name: {sourceUserDomainName}.");
                         }
@@ -392,7 +392,7 @@ namespace PersonalViewMigrationTool
                     if (targetUserAndTeamRecords.Any(u => u.Id == sourceUserOrTeam.Id))
                     {
                         // could be mapped via id
-                        mo.MappedOwnerId = sourceUserOrTeam.Id;
+                        mo.TargetOwnerId = sourceUserOrTeam.Id;
                         mo.WillBeMigrated = true;
                     }
 
@@ -400,11 +400,12 @@ namespace PersonalViewMigrationTool
                     // get the name from the source team with that id
                     else if (sourceUserOrTeam.Attributes.TryGetValue("name", out object sourceTeamname))
                     {
+                        CustomLog($"Unable to map source team {sourceUserOrTeam.Id} {sourceUserOrTeam.Attributes["name"]} via ID");
                         var mappingCandidate = targetUserAndTeamRecords.FirstOrDefault(t => t.Attributes.ContainsKey("name") && t.Attributes["name"].ToString() == sourceTeamname.ToString());
                         if (mappingCandidate != null)
                         {
                             // found a team that can be mapped 
-                            mo.MappedOwnerId = mappingCandidate.Id;
+                            mo.TargetOwnerId = mappingCandidate.Id;
                             mo.WillBeMigrated = true;
                             CustomLog($"   Mapped team via Domain Name: {sourceTeamname}.");
                         }
@@ -453,56 +454,76 @@ namespace PersonalViewMigrationTool
         private void RetrievePersonalViews(BackgroundWorker worker, DoWorkEventArgs args)
         {
             CustomLog("Retrieving personal views...");
-            // mapping completed for the current user / team .. retrieve the personal views now
 
             sourceConnection.RemoveImpersonation();
             var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
 
-            foreach (var sourceUser in sourceUserAndTeamRecords.Where(x => x.LogicalName == "systemuser"))
+            foreach (var mo in migrationObjects.Where(m => m.WillBeMigrated)) // only work on users or teams that are marked for migration
             {
-                try
+                // try to find source user or team that corresponds to this migration object
+                var sourceUserOrTeam = sourceUserAndTeamRecords.FirstOrDefault(x => x.Id == mo.SourceOwnerId);
+
+                if (sourceUserOrTeam.LogicalName == "systemuser")
                 {
-                    var mo = migrationObjects.FirstOrDefault(x => x.OwnerId == sourceUser.Id);
-
-                    impersonatedSourceConnection.CallerId = sourceUser.Id;
-
-                    var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsOwnedByUserOrTeam, sourceUser.Id)));
-
-                    if (!userPersonalViews.Any())
+                    try
                     {
-                        mo.WillBeMigrated = false;
-                        mo.NotMigrateReason = "This user has no personal views that could be migrated.";
+                        impersonatedSourceConnection.CallerId = sourceUserOrTeam.Id;
+                        var userPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsOwnedByUserOrTeam, sourceUserOrTeam.Id)));
+
+                        if (!userPersonalViews.Any())
+                        {
+                            mo.WillBeMigrated = false;
+                            mo.NotMigrateReason = "This user has no personal views that could be migrated.";
+                        }
+                        else
+                        {
+                            userPersonalViews.ForEach(
+                                x =>
+                                {
+                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
+                                }
+                            );
+                        }
+                        CustomLog($"{sourceUserOrTeam.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
+
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        userPersonalViews.ForEach(
-                            x =>
-                            {
-                                mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
-                            }
-                        );
+                        CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceUserOrTeam.Attributes["fullname"]}: {ex.Message}");
+                        mo.MigrationResult = MigrationResult.SucessfulWithSomeErrors;
                     }
-                    CustomLog($"{sourceUser.Attributes["fullname"]} has {userPersonalViews.Count} personal views.");
+                }
+                else if (sourceUserOrTeam.LogicalName == "team")
+                {
+                    try
+                    {
+                        // impersonate the team admin
+                        var teamAdminId = Guid.Parse(sourceUserOrTeam.Attributes["administratorid"].ToString());
+                        impersonatedSourceConnection.CallerId = teamAdminId;
+                        var teamPersonalViews = impersonatedSourceConnection.RetrieveAll(new FetchExpression(string.Format(fetch_PersonalViewsOwnedByUserOrTeam, sourceUserOrTeam.Id)));
 
-                }
-                catch (Exception ex)
-                {
-                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceUser.Attributes["fullname"]}. Please see the logfile for the stracktrace. Operation will resume");
-                    LogError($"{ex.Message} {ex.StackTrace}");
-                }
-            }
-            foreach (var sourceTeam in sourceUserAndTeamRecords.Where(x => x.LogicalName == "team"))
-            {
-                // now get all the views that are owned by a team
+                        if (!teamPersonalViews.Any())
+                        {
+                            mo.WillBeMigrated = false;
+                            mo.NotMigrateReason = "This team owns no personal views that could be migrated.";
+                        }
+                        else
+                        {
+                            teamPersonalViews.ForEach(
+                                x =>
+                                {
+                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
+                                }
+                            );
+                        }
+                        CustomLog($"{sourceUserOrTeam.Attributes["name"]} owns {teamPersonalViews.Count} personal views.");
 
-                try
-                {
-                    // not implemented yet
-                }
-                catch (Exception ex)
-                {
-                    CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceTeam.Attributes["name"]}. Please see the logfile for the stracktrace. Operation will resume");
-                    LogError($"{ex.Message} {ex.StackTrace}");
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomLog($"Error ({ex.GetType().Name}) while retrieving personal views owned by: {sourceUserOrTeam.Attributes["name"]}: {ex.Message}");
+                        mo.MigrationResult = MigrationResult.SucessfulWithSomeErrors;
+                    }
                 }
             }
 
@@ -708,9 +729,9 @@ namespace PersonalViewMigrationTool
                     // this user does not own any views 
                     continue;
                 }
-                else if (migrationObject.MappedOwnerId == null || migrationObject.MappedOwnerId == Guid.Empty)
+                else if (migrationObject.TargetOwnerId == null || migrationObject.TargetOwnerId == Guid.Empty)
                 {
-                    CustomLog($"The user {migrationObject.OwnerId} has personal views but the user could not be mapped to a corresponding record in the target system. {migrationObject.PersonalViewsMigrationObjects.Count} views owned by that user will not be migrated.");
+                    CustomLog($"The user {migrationObject.SourceOwnerId} has personal views but the user could not be mapped to a corresponding record in the target system. {migrationObject.PersonalViewsMigrationObjects.Count} views owned by that user will not be migrated.");
                     continue;
                 }
 
@@ -720,7 +741,7 @@ namespace PersonalViewMigrationTool
                     CustomLog($"Migrating Views owned by User / Team with: {migrationObject.OwnerName}..");
                     targetConnection.RemoveImpersonation();
                     var impersonatedConnection = targetConnection.GetCrmServiceClient();
-                    impersonatedConnection.CallerId = migrationObject.MappedOwnerId;
+                    impersonatedConnection.CallerId = migrationObject.TargetOwnerId;
 
                     // --- upsert personal views ---
                     bool allPersonalViewsMigratedSucessful = true;
@@ -731,7 +752,7 @@ namespace PersonalViewMigrationTool
                             var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
                                 "layoutxml", "name", "querytype", "returnedtypecode", "statecode", "statuscode", "userqueryid");
 
-                            upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.MappedOwnerId);
+                            upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.TargetOwnerId);
 
                             var createdViewId = impersonatedConnection.Upsert(upsertRecord);
                             currentViewCount++;
@@ -756,8 +777,7 @@ namespace PersonalViewMigrationTool
                                 }
                                 catch (Exception ex)
                                 {
-                                    CustomLog($"Exception while migrating sharing: {ex.GetType().Name}. Operation will continue, please see log for exception details.");
-                                    LogError($"{ex.Message} {ex.StackTrace}");
+                                    CustomLog($"Exception while migrating sharing: {ex.GetType().Name}: {ex.Message}");
                                     poa.NotMigrateReason = "Exception while migrating sharing, please see log for exception details";
                                     poa.MigrationResult = MigrationResult.Failed;
                                     allSharingsMigratedSuccessful = false;
@@ -774,13 +794,10 @@ namespace PersonalViewMigrationTool
                             {
                                 personalViewMigrationObject.MigrationResult = MigrationResult.SucessfulWithSomeErrors;
                             }
-
-                            CustomLog($"Migrated User / Team {currentUserTeamCount} / {totalUserTeamCount}. View {currentViewCount} / {totalViewCount}. PoA {currentPoACount} / {totalPoACount}.");
                         }
                         catch (Exception ex)
                         {
-                            CustomLog($"Exception while migrating view {personalViewMigrationObject.PersonalViewName}: {ex.GetType().Name}. Operation will continue, please see log for exception details.");
-                            LogError($"{ex.Message} {ex.StackTrace}");
+                            CustomLog($"Exception while migrating view '{personalViewMigrationObject.PersonalViewName}': {ex.GetType().Name}: {ex.Message}");
                             personalViewMigrationObject.NotMigrateReason = "Exception while migrating personal view, please see log for exception details.";
                             personalViewMigrationObject.MigrationResult = MigrationResult.Failed;
                             allPersonalViewsMigratedSucessful = false;
@@ -801,8 +818,7 @@ namespace PersonalViewMigrationTool
                 catch (Exception ex)
                 {
                     // only impersation errors should reach this point
-                    CustomLog($"Exception while migrating user {migrationObject.OwnerName}: {ex.GetType().Name}. Operation will continue, please see log for exception details.");
-                    LogError($"{ex.Message} {ex.StackTrace}");
+                    CustomLog($"Exception while migrating user {migrationObject.OwnerName}: {ex.GetType().Name}. {ex.Message}");
                     migrationObject.MigrationResult = MigrationResult.Failed;
                 }
             }
@@ -815,7 +831,8 @@ namespace PersonalViewMigrationTool
                 $" Successfully migrated: {migrationObjects.Count(m => m.MigrationResult == MigrationResult.Sucessful)} {Environment.NewLine}" +
                 $" Migrated with issues: {migrationObjects.Count(m => m.MigrationResult == MigrationResult.SucessfulWithSomeErrors)} {Environment.NewLine}" +
                 $" Migration failed: {migrationObjects.Count(m => m.MigrationResult == MigrationResult.Failed)} {Environment.NewLine}" +
-                $" Marked for migration: {migrationObjects.Count(m => m.WillBeMigrated)}");
+                $" Marked for migration: {migrationObjects.Count(m => m.WillBeMigrated)}" +
+                $" Not marked for migration: {migrationObjects.Count(m => !m.WillBeMigrated)}");
 
             CustomLog($"Migrated Views: {Environment.NewLine}" +
                 $" Successfully migrated: {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Count(v => v.MigrationResult == MigrationResult.Sucessful))} {Environment.NewLine}" +
@@ -829,7 +846,8 @@ namespace PersonalViewMigrationTool
                 $" Migration failed: {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(v => v.MappedSharings.Count(s => s.MigrationResult == MigrationResult.Failed)))} {Environment.NewLine}" +
                 $" Marked for migration: {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(v => v.MappedSharings.Count(s => s.WillBeMigrated)))}");
         }
-      
+
+
         private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
         {
             btnConnectSource.Enabled = false;
