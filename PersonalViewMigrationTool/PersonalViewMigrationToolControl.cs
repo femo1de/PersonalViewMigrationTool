@@ -544,6 +544,7 @@ namespace PersonalViewMigrationTool
 
             // sourceConnection might still be impersonating someone. Force CallerId to be empty
             sourceConnection.RemoveImpersonation();
+            var impersonatedSourceConnection = sourceConnection.GetCrmServiceClient();
 
             try
             {
@@ -555,9 +556,18 @@ namespace PersonalViewMigrationTool
                     int sharesThatCouldNotbeMapped = 0;
                     int sharesThatCouldBeMapped = 0;
 
+                    // impersonate the current user or team administrator
+                    if (migrationObject.OwnerLogicalName == "systemuser")
+                    {
+                        impersonatedSourceConnection.CallerId = migrationObject.SourceOwnerId;
+                    }
+                    else if (migrationObject.OwnerLogicalName == "team")
+                    {
+                        // views can't be owned by teams
+                    }
+
                     foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects)
                     {
-
                         // clear PoA Collections 
                         personalViewMigrationObject.MappedSharings.Clear();
                         personalViewMigrationObject.Sharings.Clear();
