@@ -1014,5 +1014,28 @@ namespace PersonalViewMigrationTool
 
         #endregion
 
+        private void treeView1_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            var nodeId = e.Node.Name;
+            // try to find the element corresponding to this node
+            var migrationObjectCandidate = migrationObjects.FirstOrDefault(m => m.ElementId == nodeId);
+
+            if (migrationObjectCandidate != null)
+            {
+                // this is a top level node
+                migrationObjectCandidate.WillBeMigrated = e.Node.Checked;
+            }
+            else
+            {
+                var personalViewCandidate = migrationObjects.Where(m => m.PersonalViewsMigrationObjects.FirstOrDefault(v => v.ElementId == nodeId) != null).Select(x => x.PersonalViewsMigrationObjects);
+                if (personalViewCandidate != null)
+                {
+                    // this is a personal view node
+                    personalViewCandidate.WillBeMigrated = e.Node.Checked;
+                }
+            }
+
+
+        }
     }
 }
