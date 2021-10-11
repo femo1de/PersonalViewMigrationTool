@@ -21,7 +21,6 @@ namespace PersonalViewMigrationTool
         AddedToList,
         RemovedFromList,
         DetailsAdded,
-        CanbeMigratedChanged,
         MigrationFailed,
         MigrationSucceeded,
         MigrationSucessfulWithErrors

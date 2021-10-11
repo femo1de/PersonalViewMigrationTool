@@ -279,6 +279,9 @@ namespace PersonalViewMigrationTool
             // dont execute for events not triggered by the UI
             if (e.Action == TreeViewAction.Unknown) return;
 
+            // dont allow changing the checkbox for the top nodes
+            if (e.Node.Parent == null) return;
+
             if (_allMigrationObjects.TryGetValue(e.Node.Name, out var migrationObjectBase))
             {
                 // cancel the operation if theres a technical reason that prevents migration from this element
@@ -431,7 +434,7 @@ namespace PersonalViewMigrationTool
                         {
                             CustomLog($"   Mapping failed, this user's views will not be migrated: {sourceUserOrTeam.Attributes["fullname"]}");
                             mo.WillBeMigrated = false;
-                            mo.CanBeMigrated = true;
+                            mo.CanBeMigrated = false;
                             mo.NotMigrateReason = "This user could not be mapped to the target system. The user's views will not be migrated.";
                         }
                     }
@@ -795,7 +798,6 @@ namespace PersonalViewMigrationTool
 
             foreach (var migrationObject in migrationObjects.Where(m => m.WillBeMigrated)) 
             {
-
                 // double check whether this record can be migrated. The user can doubleclick a node in the treeview to force the checkbox
                 if (!migrationObject.CanBeMigrated) continue;
 
@@ -1006,8 +1008,6 @@ namespace PersonalViewMigrationTool
                                 createNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
                                 createNode.Checked = false;
                             }
-                            // put a flag in the tag on whether this item can be migrated - used to prevent the user from enabling nodes that can't be migrated
-                            createNode.Tag = nodeUpdateObject.CanBeMigrated;
 
                             parentNode.Nodes.Add(createNode);
                             parentNode.Expand();
@@ -1028,11 +1028,7 @@ namespace PersonalViewMigrationTool
                                 updateNode.Checked = false;
                             }
                             break;
-                        case UpdateReason.CanbeMigratedChanged:
-                            // put a flag in the tag on whether this item can be migrated - used to prevent the user from enabling nodes that can't be migrated
-                            var canBeMigratedChangeNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
-                            canBeMigratedChangeNode.Tag = nodeUpdateObject.CanBeMigrated;
-                            break;
+
                         case UpdateReason.RemovedFromList:
                             // not implemented
                             break;

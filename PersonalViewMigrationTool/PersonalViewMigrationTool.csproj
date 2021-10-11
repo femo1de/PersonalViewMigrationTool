@@ -70,6 +70,9 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomTreeViewControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Dto\MigrationObject.cs" />
     <Compile Include="Dto\MigrationObjectBase.cs" />
     <Compile Include="Dto\MigrationResult.cs" />

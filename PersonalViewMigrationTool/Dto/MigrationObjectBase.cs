@@ -65,16 +65,7 @@ namespace PersonalViewMigrationTool.Dto
         internal bool CanBeMigrated
         {
             get => canBeMigrated;
-            set
-            {
-                canBeMigrated = value;
-                updateNodeUi(new NodeUpdateObject()
-                {
-                    MigrationObjectBase = this,
-                    UpdateReason = UpdateReason.CanbeMigratedChanged,
-                    CanBeMigrated = value
-                });
-            }
+            set => canBeMigrated = value;
         }
 
         internal MigrationResult MigrationResult
