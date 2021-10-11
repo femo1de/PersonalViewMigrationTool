@@ -17,7 +17,12 @@ namespace PersonalViewMigrationTool.Dto
 
         #region ctor
 
-        internal SharingMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate, PersonalViewMigrationObject parentPersonalViewMigrationObject, PrincipalAccess sharingPoA, string sharingName, bool willBeMigrated = false) 
+        internal SharingMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate,
+                                        PersonalViewMigrationObject parentPersonalViewMigrationObject,
+                                        PrincipalAccess sharingPoA,
+                                        string sharingName,
+                                        bool willBeMigrated = false,
+                                        bool canBeMigrated = false) 
             : base(updateNodeUiDelegate)
         {
             _personalViewMigrationObject = parentPersonalViewMigrationObject;
@@ -36,6 +41,7 @@ namespace PersonalViewMigrationTool.Dto
 
             // this needs to happen after the node object is created!
             WillBeMigrated = willBeMigrated;
+            CanBeMigrated = canBeMigrated;
         }
 
         #endregion

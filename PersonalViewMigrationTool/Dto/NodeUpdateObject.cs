@@ -7,6 +7,7 @@
         internal string NodeId { get { return MigrationObjectBase.ElementId; } }
         internal string ParentNodeId { get; set ; }
         internal bool WillMigrate { get ; set; }
+        internal bool CanBeMigrated { get; set; }
         internal string NotMigrateReason { get ; set ; }
         internal string NodeText { get ; set ; }
         internal MigrationObjectBase MigrationObjectBase { get; set; }
@@ -20,6 +21,7 @@ namespace PersonalViewMigrationTool
         AddedToList,
         RemovedFromList,
         DetailsAdded,
+        CanbeMigratedChanged,
         MigrationFailed,
         MigrationSucceeded,
         MigrationSucessfulWithErrors

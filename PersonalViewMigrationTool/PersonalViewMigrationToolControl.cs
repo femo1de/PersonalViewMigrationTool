@@ -247,6 +247,52 @@ namespace PersonalViewMigrationTool
             treeView1.CollapseAll();
         }
 
+        private void treeView1_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            if (e.Action == TreeViewAction.Unknown) return; // skip events that were not raised by the user
+
+            if (_allMigrationObjects.TryGetValue(e.Node.Name, out MigrationObjectBase migrationObject))
+            {
+                migrationObject.WillBeMigrated = e.Node.Checked;
+            }
+        }
+
+        private void checkAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // do this only on the top level as changes will propagate to child elements automatically. Only enable objects that technically can be migrated
+            foreach (var item in migrationObjects.Where(x => x.CanBeMigrated))
+            {
+                item.WillBeMigrated = true;
+            }
+        }
+
+        private void uncheckAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            foreach (var item in migrationObjects) // do this only on the top level as changes will propagate to child elements automatically
+            {
+                item.WillBeMigrated = false;
+            }
+        }
+
+        private void treeView1_BeforeCheck(object sender, TreeViewCancelEventArgs e)
+        {
+            // dont execute for events not triggered by the UI
+            if (e.Action == TreeViewAction.Unknown) return;
+
+            if (_allMigrationObjects.TryGetValue(e.Node.Name, out var migrationObjectBase))
+            {
+                // cancel the operation if theres a technical reason that prevents migration from this element
+                if (!migrationObjectBase.CanBeMigrated) e.Cancel = true;
+            }
+        }
+
+        private void deleteLogFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var lm = new LogManager(this.GetType());
+            lm.DeleteLog();
+            CustomLog("User deleted previous logfile.");
+        }
+
         #endregion
 
         #region Business Logic
@@ -319,6 +365,7 @@ namespace PersonalViewMigrationTool
                 }
             }
         }
+
         private void RetrieveUsers(BackgroundWorker worked, DoWorkEventArgs args)
         {
             if (Service == null)
@@ -351,6 +398,7 @@ namespace PersonalViewMigrationTool
                     if ((bool)sourceUserOrTeam.Attributes["isdisabled"])
                     {
                         mo.WillBeMigrated = false;
+                        mo.CanBeMigrated = false;
                         mo.NotMigrateReason = "This user is disabled on the source system.";
                         migrationObjects.Add(mo);
                         continue;
@@ -363,6 +411,7 @@ namespace PersonalViewMigrationTool
                     {
                         mo.TargetOwnerId = sourceUserOrTeam.Id;
                         mo.WillBeMigrated = true;
+                        mo.CanBeMigrated = true;
                     }
 
                     // needs to be mapped via domainname
@@ -375,12 +424,14 @@ namespace PersonalViewMigrationTool
                         {
                             mo.TargetOwnerId = mappingCandidate.Id;
                             mo.WillBeMigrated = true;
+                            mo.CanBeMigrated = true;
                             CustomLog($"   Mapped user via Domain Name: {sourceUserDomainName}.");
                         }
                         else
                         {
                             CustomLog($"   Mapping failed, this user's views will not be migrated: {sourceUserOrTeam.Attributes["fullname"]}");
                             mo.WillBeMigrated = false;
+                            mo.CanBeMigrated = true;
                             mo.NotMigrateReason = "This user could not be mapped to the target system. The user's views will not be migrated.";
                         }
                     }
@@ -396,6 +447,7 @@ namespace PersonalViewMigrationTool
                         // could be mapped via id
                         mo.TargetOwnerId = sourceUserOrTeam.Id;
                         mo.WillBeMigrated = true;
+                        mo.CanBeMigrated = true;
                     }
 
                     // needs to be mapped via team name
@@ -409,12 +461,14 @@ namespace PersonalViewMigrationTool
                             // found a team that can be mapped 
                             mo.TargetOwnerId = mappingCandidate.Id;
                             mo.WillBeMigrated = true;
+                            mo.CanBeMigrated = true;
                             CustomLog($"   Mapped team via Domain Name: {sourceTeamname}.");
                         }
                         else
                         {
                             CustomLog($"   Unable to map source team {sourceUserOrTeam.Id} - {sourceTeamname} via ID or name. This Team's views will not be migrated.");
                             mo.WillBeMigrated = false;
+                            mo.CanBeMigrated = false;
                             mo.NotMigrateReason = "This team could not be mapped to the target system. The team's views will not be migrated.";
                         }
                     }
@@ -423,6 +477,7 @@ namespace PersonalViewMigrationTool
                         // the source team name is empty
                         CustomLog($"   This team does not seem to have a name in the source system, mapping is not possible.");
                         mo.WillBeMigrated = false;
+                        mo.CanBeMigrated = false;
                         mo.NotMigrateReason = "This team could not be mapped to the target system. The team's views will not be migrated.";
                     }
                 }
@@ -479,6 +534,7 @@ namespace PersonalViewMigrationTool
                         if (!userPersonalViews.Any())
                         {
                             mo.WillBeMigrated = false;
+                            mo.CanBeMigrated = false;
                             mo.NotMigrateReason = "This user has no personal views that could be migrated.";
                         }
                         else
@@ -486,7 +542,7 @@ namespace PersonalViewMigrationTool
                             userPersonalViews.ForEach(
                                 x =>
                                 {
-                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
+                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated, true));
                                 }
                             );
                         }
@@ -511,6 +567,7 @@ namespace PersonalViewMigrationTool
                         if (!teamPersonalViews.Any())
                         {
                             mo.WillBeMigrated = false;
+                            mo.CanBeMigrated = false;
                             mo.NotMigrateReason = "This team owns no personal views that could be migrated.";
                         }
                         else
@@ -518,7 +575,7 @@ namespace PersonalViewMigrationTool
                             teamPersonalViews.ForEach(
                                 x =>
                                 {
-                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated));
+                                    mo.PersonalViewsMigrationObjects.Add(new PersonalViewMigrationObject(UpdateNode, mo, x, x.Attributes["name"].ToString(), mo.WillBeMigrated, true));
                                 }
                             );
                         }
@@ -558,7 +615,6 @@ namespace PersonalViewMigrationTool
 
             try
             {
-
                 foreach (var migrationObject in migrationObjects.Where(x => x.PersonalViewsMigrationObjects.Any()))
                 {
                     // user level
@@ -612,7 +668,7 @@ namespace PersonalViewMigrationTool
                                 {
                                     // could be mapped via id
 
-                                    SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {targetUser.Attributes["fullname"]}", true);
+                                    SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {targetUser.Attributes["fullname"]}", true, true);
                                     personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
                                     sharesThatCouldBeMapped++;
                                 }
@@ -629,14 +685,14 @@ namespace PersonalViewMigrationTool
                                             var poaCopy = poa;
                                             poaCopy.Principal = mappingCandidate.ToEntityReference();
 
-                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poaCopy, $"Shared with User {mappingCandidate.Attributes["fullname"]}" , true);
+                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poaCopy, $"Shared with User {mappingCandidate.Attributes["fullname"]}" , true, true);
                                             personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
                                             sharesThatCouldBeMapped++;
                                         }
                                         else
                                         {
                                             sharesThatCouldNotbeMapped++;
-                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {poa.Principal.Id}", false);
+                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {poa.Principal.Id}", false, false);
                                             sharingMigrationObject.NotMigrateReason = "Shared with a user that could not be mapped to the target system.";
                                             personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
 
@@ -648,7 +704,7 @@ namespace PersonalViewMigrationTool
                                     {
                                         // this source user has no domainname address and cant be mapped by id either
                                         sharesThatCouldNotbeMapped++;
-                                        SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {poa.Principal.Id}", false);
+                                        SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {poa.Principal.Id}", false, false);
                                         sharingMigrationObject.NotMigrateReason = "Shared with a user that could not be mapped to the target system.";
                                         personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
 
@@ -663,7 +719,7 @@ namespace PersonalViewMigrationTool
                                 if (targetTeam != null)
                                 {
                                     // could be mapped via id
-                                    SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {targetTeam.Attributes["name"]}", true);
+                                    SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with User {targetTeam.Attributes["name"]}", true, true);
                                     personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
                                     sharesThatCouldBeMapped++;
                                 }
@@ -678,14 +734,14 @@ namespace PersonalViewMigrationTool
                                         {
                                             var poaCopy = poa;
                                             poaCopy.Principal = mappingCandidate.ToEntityReference();
-                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poaCopy, $"Shared with User {mappingCandidate.Attributes["name"]}", true);
+                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poaCopy, $"Shared with User {mappingCandidate.Attributes["name"]}", true, true);
                                             personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
                                             sharesThatCouldBeMapped++;
                                         }
                                         else
                                         {
                                             sharesThatCouldNotbeMapped++;
-                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with team {poa.Principal.Id}", false);
+                                            SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with team {poa.Principal.Id}", false, false);
                                             sharingMigrationObject.NotMigrateReason = "Shared with a team that could not be mapped to the target system.";
                                             personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
 
@@ -697,7 +753,7 @@ namespace PersonalViewMigrationTool
                                     {
                                         // this source team has no name  and cant be mapped by id either
                                         sharesThatCouldNotbeMapped++;
-                                        SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with team {poa.Principal.Id}", false);
+                                        SharingMigrationObject sharingMigrationObject = new SharingMigrationObject(UpdateNode, personalViewMigrationObject, poa, $"Shared with team {poa.Principal.Id}", false, false);
                                         sharingMigrationObject.NotMigrateReason = "Shared with a team that could not be mapped to the target system.";
                                         personalViewMigrationObject.MappedSharings.Add(sharingMigrationObject);
 
@@ -737,18 +793,11 @@ namespace PersonalViewMigrationTool
         {
             CustomLog("Starting migration..");
 
-            int currentUserTeamCount = 0;
-            int totalUserTeamCount = migrationObjects.Count;
-
-            int currentViewCount = 0;
-            int totalViewCount = migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Count);
-
-            int currentPoACount = 0;
-            int totalPoACount = migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count));
-
             foreach (var migrationObject in migrationObjects.Where(m => m.WillBeMigrated)) 
             {
-                currentUserTeamCount++;
+
+                // double check whether this record can be migrated. The user can doubleclick a node in the treeview to force the checkbox
+                if (!migrationObject.CanBeMigrated) continue;
 
                 if ( !migrationObject.PersonalViewsMigrationObjects.Any())
                 {
@@ -773,6 +822,10 @@ namespace PersonalViewMigrationTool
                     bool allPersonalViewsMigratedSucessful = true;
                     foreach (var personalViewMigrationObject in migrationObject.PersonalViewsMigrationObjects.Where(p => p.WillBeMigrated))
                     {
+
+                        // double check whether this record can be migrated. The user can doubleclick a node in the treeview to force the checkbox
+                        if (!personalViewMigrationObject.CanBeMigrated) continue;
+
                         try
                         {
                             var upsertRecord = personalViewMigrationObject.PersonalView.Copy("columnsetxml", "conditionalformatting", "description", "fetchxml",
@@ -781,12 +834,15 @@ namespace PersonalViewMigrationTool
                             upsertRecord.Attributes["ownerid"] = new EntityReference("systemuser", migrationObject.TargetOwnerId);
 
                             var createdViewId = impersonatedConnection.Upsert(upsertRecord);
-                            currentViewCount++;
 
                             // --- migrate the sharings of this view ----
                             bool allSharingsMigratedSuccessful = true;
                             foreach (var poa in personalViewMigrationObject.MappedSharings.Where(p => p.WillBeMigrated))
                             {
+
+                                // double check whether this record can be migrated. The user can doubleclick a node in the treeview to force the checkbox
+                                if (!poa.CanBeMigrated) continue;
+
                                 try
                                 {
                                     impersonatedConnection.Execute(new GrantAccessRequest()
@@ -799,7 +855,6 @@ namespace PersonalViewMigrationTool
                                         Target = new EntityReference(upsertRecord.LogicalName, createdViewId)
                                     });
                                     poa.MigrationResult = MigrationResult.Sucessful;
-                                    currentPoACount++;
                                 }
                                 catch (Exception ex)
                                 {
@@ -832,6 +887,7 @@ namespace PersonalViewMigrationTool
                             foreach (var item in personalViewMigrationObject.MappedSharings)
                             {
                                 item.WillBeMigrated = false;
+                                item.CanBeMigrated = false;
                                 item.NotMigrateReason = "Parent View could not be migrated so this sharing won't be migrated either.";
                                 item.MigrationResult = MigrationResult.Failed;
                             }
@@ -850,8 +906,6 @@ namespace PersonalViewMigrationTool
             }
 
             CustomLog("----------------------");
-            CustomLog($"Migration completed. Migrated {currentViewCount} views owned by {currentUserTeamCount} users or teams and shared them with {currentPoACount} users or teams.");
-
 
             CustomLog($"Migrated Users / Teams: {Environment.NewLine}" +
                 $" Successfully migrated: {migrationObjects.Count(m => m.MigrationResult == MigrationResult.Sucessful)} {Environment.NewLine}" +
@@ -872,7 +926,6 @@ namespace PersonalViewMigrationTool
                 $" Migration failed: {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(v => v.MappedSharings.Count(s => s.MigrationResult == MigrationResult.Failed)))} {Environment.NewLine}" +
                 $" Marked for migration: {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(v => v.MappedSharings.Count(s => s.WillBeMigrated)))}");
         }
-
 
         private void OnMigrateCompleted(RunWorkerCompletedEventArgs obj)
         {
@@ -953,6 +1006,8 @@ namespace PersonalViewMigrationTool
                                 createNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
                                 createNode.Checked = false;
                             }
+                            // put a flag in the tag on whether this item can be migrated - used to prevent the user from enabling nodes that can't be migrated
+                            createNode.Tag = nodeUpdateObject.CanBeMigrated;
 
                             parentNode.Nodes.Add(createNode);
                             parentNode.Expand();
@@ -973,7 +1028,11 @@ namespace PersonalViewMigrationTool
                                 updateNode.Checked = false;
                             }
                             break;
-
+                        case UpdateReason.CanbeMigratedChanged:
+                            // put a flag in the tag on whether this item can be migrated - used to prevent the user from enabling nodes that can't be migrated
+                            var canBeMigratedChangeNode = treeView1.Nodes.Find(nodeUpdateObject.NodeId, true).FirstOrDefault();
+                            canBeMigratedChangeNode.Tag = nodeUpdateObject.CanBeMigrated;
+                            break;
                         case UpdateReason.RemovedFromList:
                             // not implemented
                             break;
@@ -1033,15 +1092,5 @@ namespace PersonalViewMigrationTool
         }
 
         #endregion
-
-        private void treeView1_AfterCheck(object sender, TreeViewEventArgs e)
-        {
-            if (e.Action == TreeViewAction.Unknown) return; // skip events that were not raised by the user
-
-            if (_allMigrationObjects.TryGetValue(e.Node.Name, out MigrationObjectBase migrationObject))
-            {
-                migrationObject.WillBeMigrated = e.Node.Checked;
-            }
-        }
     }
 }

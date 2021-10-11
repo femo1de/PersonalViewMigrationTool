@@ -4,12 +4,13 @@ using System.Collections.Generic;
 namespace PersonalViewMigrationTool.Dto
 {
 
-    internal abstract class MigrationObjectBase 
+    internal abstract class MigrationObjectBase
     {
         private readonly Action<NodeUpdateObject> updateNodeUi;
         private bool willBeMigrated;
         private MigrationResult migrationResult;
         private string notMigrateReason;
+        private bool canBeMigrated;
 
         public string ElementId { get; set; }
 
@@ -27,12 +28,28 @@ namespace PersonalViewMigrationTool.Dto
             {
                 willBeMigrated = value;
 
-                // disable all child elements if there are any
-                if (ChildObjects != null)
+                if (value)
                 {
-                    foreach (var child in ChildObjects)
+                    if (ChildObjects != null)
                     {
-                        child.WillBeMigrated = value;
+                        foreach (var child in ChildObjects)
+                        {
+                            // only do this for childs that dont have a technical reason why they could not be migrated
+                            if (child.CanBeMigrated)
+                            {
+                                child.WillBeMigrated = value;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (ChildObjects != null)
+                    {
+                        foreach (var child in ChildObjects)
+                        {
+                            child.WillBeMigrated = value;
+                        }
                     }
                 }
 
@@ -41,7 +58,22 @@ namespace PersonalViewMigrationTool.Dto
                     MigrationObjectBase = this,
                     UpdateReason = UpdateReason.DetailsAdded,
                     WillMigrate = value
-                }); 
+                });
+            }
+        }
+
+        internal bool CanBeMigrated
+        {
+            get => canBeMigrated;
+            set
+            {
+                canBeMigrated = value;
+                updateNodeUi(new NodeUpdateObject()
+                {
+                    MigrationObjectBase = this,
+                    UpdateReason = UpdateReason.CanbeMigratedChanged,
+                    CanBeMigrated = value
+                });
             }
         }
 

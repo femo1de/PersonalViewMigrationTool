@@ -27,7 +27,12 @@ namespace PersonalViewMigrationTool.Dto
 
         #region ctor
 
-        internal PersonalViewMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate, MigrationObject parentMigrationObject, Entity personalView, string personalViewName, bool willBeMigrated = false)
+        internal PersonalViewMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate,
+                                             MigrationObject parentMigrationObject,
+                                             Entity personalView,
+                                             string personalViewName,
+                                             bool willBeMigrated = false,
+                                             bool canBeMigrated = false)
             : base(updateNodeUiDelegate)
         {
             _parentMigrationObject = parentMigrationObject;
@@ -46,6 +51,7 @@ namespace PersonalViewMigrationTool.Dto
 
             // this needs to happen after the node object is created!
             WillBeMigrated = willBeMigrated;
+            CanBeMigrated = canBeMigrated;
         }
 
         #endregion

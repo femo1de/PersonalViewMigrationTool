@@ -33,8 +33,8 @@ namespace PersonalViewMigrationTool
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PersonalViewMigrationToolControl));
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Users");
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Teams");
+            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Users");
+            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Teams");
             this.toolStripMenu = new System.Windows.Forms.ToolStrip();
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -69,6 +69,9 @@ namespace PersonalViewMigrationTool
             this.expandAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.checkAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.uncheckAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteLogFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -144,7 +147,8 @@ namespace PersonalViewMigrationTool
             this.dropDownButtonLogs.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.dropDownButtonLogs.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openLogToolStripMenuItem,
-            this.openLogFolderToolStripMenuItem});
+            this.openLogFolderToolStripMenuItem,
+            this.deleteLogFileToolStripMenuItem});
             this.dropDownButtonLogs.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.dropDownButtonLogs.Name = "dropDownButtonLogs";
             this.dropDownButtonLogs.Size = new System.Drawing.Size(45, 22);
@@ -200,7 +204,7 @@ namespace PersonalViewMigrationTool
             this.lbDebugOutput.Name = "lbDebugOutput";
             this.lbDebugOutput.ScrollAlwaysVisible = true;
             this.lbDebugOutput.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.lbDebugOutput.Size = new System.Drawing.Size(941, 808);
+            this.lbDebugOutput.Size = new System.Drawing.Size(941, 814);
             this.lbDebugOutput.TabIndex = 11;
             this.lbDebugOutput.TabStop = false;
             // 
@@ -390,18 +394,19 @@ namespace PersonalViewMigrationTool
             this.treeView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeView1.Location = new System.Drawing.Point(3, 3);
             this.treeView1.Name = "treeView1";
-            treeNode1.Checked = true;
-            treeNode1.Name = "nUsers";
-            treeNode1.Text = "Users";
-            treeNode2.Checked = true;
-            treeNode2.Name = "nTeams";
-            treeNode2.Text = "Teams";
+            treeNode3.Checked = true;
+            treeNode3.Name = "nUsers";
+            treeNode3.Text = "Users";
+            treeNode4.Checked = true;
+            treeNode4.Name = "nTeams";
+            treeNode4.Text = "Teams";
             this.treeView1.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode1,
-            treeNode2});
+            treeNode3,
+            treeNode4});
             this.treeView1.ShowNodeToolTips = true;
             this.treeView1.Size = new System.Drawing.Size(941, 814);
             this.treeView1.TabIndex = 0;
+            this.treeView1.BeforeCheck += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeView1_BeforeCheck);
             this.treeView1.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterCheck);
             // 
             // cmsOverviewTab
@@ -409,21 +414,23 @@ namespace PersonalViewMigrationTool
             this.cmsOverviewTab.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.cmsOverviewTab.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.expandAllToolStripMenuItem,
-            this.collapseAllToolStripMenuItem});
+            this.collapseAllToolStripMenuItem,
+            this.checkAllToolStripMenuItem,
+            this.uncheckAllToolStripMenuItem});
             this.cmsOverviewTab.Name = "cmsOverviewTab";
-            this.cmsOverviewTab.Size = new System.Drawing.Size(137, 48);
+            this.cmsOverviewTab.Size = new System.Drawing.Size(138, 92);
             // 
             // expandAllToolStripMenuItem
             // 
             this.expandAllToolStripMenuItem.Name = "expandAllToolStripMenuItem";
-            this.expandAllToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
+            this.expandAllToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
             this.expandAllToolStripMenuItem.Text = "Expand All";
             this.expandAllToolStripMenuItem.Click += new System.EventHandler(this.expandAllToolStripMenuItem_Click);
             // 
             // collapseAllToolStripMenuItem
             // 
             this.collapseAllToolStripMenuItem.Name = "collapseAllToolStripMenuItem";
-            this.collapseAllToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
+            this.collapseAllToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
             this.collapseAllToolStripMenuItem.Text = "Collapse All";
             this.collapseAllToolStripMenuItem.Click += new System.EventHandler(this.collapseAllToolStripMenuItem_Click);
             // 
@@ -433,10 +440,31 @@ namespace PersonalViewMigrationTool
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(947, 814);
+            this.tabPage2.Size = new System.Drawing.Size(947, 820);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Log Output";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // checkAllToolStripMenuItem
+            // 
+            this.checkAllToolStripMenuItem.Name = "checkAllToolStripMenuItem";
+            this.checkAllToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.checkAllToolStripMenuItem.Text = "Check All";
+            this.checkAllToolStripMenuItem.Click += new System.EventHandler(this.checkAllToolStripMenuItem_Click);
+            // 
+            // uncheckAllToolStripMenuItem
+            // 
+            this.uncheckAllToolStripMenuItem.Name = "uncheckAllToolStripMenuItem";
+            this.uncheckAllToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.uncheckAllToolStripMenuItem.Text = "Uncheck All";
+            this.uncheckAllToolStripMenuItem.Click += new System.EventHandler(this.uncheckAllToolStripMenuItem_Click);
+            // 
+            // deleteLogFileToolStripMenuItem
+            // 
+            this.deleteLogFileToolStripMenuItem.Name = "deleteLogFileToolStripMenuItem";
+            this.deleteLogFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteLogFileToolStripMenuItem.Text = "Delete Log File";
+            this.deleteLogFileToolStripMenuItem.Click += new System.EventHandler(this.deleteLogFileToolStripMenuItem_Click);
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -498,5 +526,8 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.ContextMenuStrip cmsOverviewTab;
         private System.Windows.Forms.ToolStripMenuItem expandAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem checkAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem uncheckAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deleteLogFileToolStripMenuItem;
     }
 }
