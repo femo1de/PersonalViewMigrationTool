@@ -33,6 +33,8 @@ namespace PersonalViewMigrationTool
         private delegate void _updateTreeNodeDelegate(NodeUpdateObject nodeUpdateObject);
         private delegate void _updateLogWindowDelegate(string msg);
 
+        private Dictionary<string, MigrationObjectBase> _allMigrationObjects = new Dictionary<string, MigrationObjectBase>();
+
         // TODO: Limit columns
         const string fetch_PersonalViewsOwnedByUserOrTeam = @"
             <fetch>
@@ -448,6 +450,10 @@ namespace PersonalViewMigrationTool
                 CustomLog($"There are {usersNotInTarget.Count} users or teams in the source system, which do not exist in the target system.");
             }
             btnLoadPersonalViews.Enabled = true;
+
+            // update internal list of all MigrationObjectBase records
+            migrationObjects.OfType<MigrationObjectBase>().ToList().ForEach(u => _allMigrationObjects.AddOrReplace(u.ElementId, u));
+
             CustomLog("----------------------");
         }
 
@@ -535,6 +541,10 @@ namespace PersonalViewMigrationTool
         {
             btnLoadSharing.Enabled = true;
             tbPersonalViewsLoadedStatus.Text = $"Retrieved {migrationObjects.Sum(x => x.PersonalViewsMigrationObjects.Count)} views.";
+
+            // add all views to allObjectsDictionary
+            migrationObjects.SelectMany(x => x.PersonalViewsMigrationObjects).OfType<MigrationObjectBase>().ToList().ForEach(u => _allMigrationObjects.AddOrReplace(u.ElementId, u));
+
             CustomLog("----------------------");
         }
 
@@ -714,6 +724,12 @@ namespace PersonalViewMigrationTool
         {
             tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
             btnStartMigration.Enabled = true;
+
+            // add all sharings to allObjectsDictionary
+            migrationObjects.SelectMany(x => x.PersonalViewsMigrationObjects)
+                .SelectMany(v => v.MappedSharings).OfType<MigrationObjectBase>().ToList()
+                .ForEach(u => _allMigrationObjects.AddOrReplace(u.ElementId, u));
+
             CustomLog("----------------------");
         }
 
@@ -929,11 +945,13 @@ namespace PersonalViewMigrationTool
                             {
                                 createNode.ForeColor = System.Drawing.Color.Black;
                                 createNode.ToolTipText = "This element will be migrated.";
+                                createNode.Checked = true;
                             }
                             else
                             {
                                 createNode.ForeColor = System.Drawing.Color.DimGray;
                                 createNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                                createNode.Checked = false;
                             }
 
                             parentNode.Nodes.Add(createNode);
@@ -946,11 +964,13 @@ namespace PersonalViewMigrationTool
                             {
                                 updateNode.ForeColor = System.Drawing.Color.Black;
                                 updateNode.ToolTipText = "This element will be migrated.";
+                                updateNode.Checked = true;
                             }
                             else
                             {
                                 updateNode.ForeColor = System.Drawing.Color.DimGray;
                                 updateNode.ToolTipText = nodeUpdateObject.NotMigrateReason;
+                                updateNode.Checked = false;
                             }
                             break;
 
@@ -1016,26 +1036,12 @@ namespace PersonalViewMigrationTool
 
         private void treeView1_AfterCheck(object sender, TreeViewEventArgs e)
         {
-            var nodeId = e.Node.Name;
-            // try to find the element corresponding to this node
-            var migrationObjectCandidate = migrationObjects.FirstOrDefault(m => m.ElementId == nodeId);
+            if (e.Action == TreeViewAction.Unknown) return; // skip events that were not raised by the user
 
-            if (migrationObjectCandidate != null)
+            if (_allMigrationObjects.TryGetValue(e.Node.Name, out MigrationObjectBase migrationObject))
             {
-                // this is a top level node
-                migrationObjectCandidate.WillBeMigrated = e.Node.Checked;
+                migrationObject.WillBeMigrated = e.Node.Checked;
             }
-            else
-            {
-                var personalViewCandidate = migrationObjects.Where(m => m.PersonalViewsMigrationObjects.FirstOrDefault(v => v.ElementId == nodeId) != null).Select(x => x.PersonalViewsMigrationObjects);
-                if (personalViewCandidate != null)
-                {
-                    // this is a personal view node
-                    personalViewCandidate.WillBeMigrated = e.Node.Checked;
-                }
-            }
-
-
         }
     }
 }

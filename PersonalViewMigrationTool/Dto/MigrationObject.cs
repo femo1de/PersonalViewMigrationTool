@@ -20,6 +20,9 @@ namespace PersonalViewMigrationTool.Dto
 
         internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
 
+        // override childObjects to point to the personalViews that sit below this object
+        internal override IEnumerable<MigrationObjectBase> ChildObjects => PersonalViewsMigrationObjects; 
+
         #region ctor
         public MigrationObject(Action<NodeUpdateObject> UpdateUiDelegate, string ownerLogicalName, Guid ownerId, string ownerName, bool willBeMigrated = false) : base(UpdateUiDelegate)
         {

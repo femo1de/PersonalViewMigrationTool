@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace PersonalViewMigrationTool.Dto
 {
-    internal class MigrationObjectBase
+
+    internal abstract class MigrationObjectBase 
     {
         private readonly Action<NodeUpdateObject> updateNodeUi;
         private bool willBeMigrated;
@@ -10,6 +12,8 @@ namespace PersonalViewMigrationTool.Dto
         private string notMigrateReason;
 
         public string ElementId { get; set; }
+
+        internal abstract IEnumerable<MigrationObjectBase> ChildObjects { get; }
 
         public MigrationObjectBase(Action<NodeUpdateObject> updateNodeUi)
         {
@@ -22,6 +26,16 @@ namespace PersonalViewMigrationTool.Dto
             set
             {
                 willBeMigrated = value;
+
+                // disable all child elements if there are any
+                if (ChildObjects != null)
+                {
+                    foreach (var child in ChildObjects)
+                    {
+                        child.WillBeMigrated = value;
+                    }
+                }
+
                 updateNodeUi(new NodeUpdateObject()
                 {
                     MigrationObjectBase = this,

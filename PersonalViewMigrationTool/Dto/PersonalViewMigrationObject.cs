@@ -1,6 +1,7 @@
 ﻿using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
@@ -20,6 +21,9 @@ namespace PersonalViewMigrationTool.Dto
         internal ObservableCollection<PrincipalAccess> Sharings { get; set; } = new ObservableCollection<PrincipalAccess>();
 
         internal ObservableCollection<SharingMigrationObject> MappedSharings { get; set; } = new ObservableCollection<SharingMigrationObject>();
+
+        // override ChildObjects to point to the sharings that sit below this view object
+        internal override IEnumerable<MigrationObjectBase> ChildObjects => MappedSharings;
 
         #region ctor
 

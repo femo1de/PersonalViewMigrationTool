@@ -9,6 +9,20 @@ namespace PersonalViewMigrationTool.Extensions
 {
     public static class Extensions
     {
+        internal static void AddOrReplace<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key, TValue value)
+        {
+            if (dic.ContainsKey(key))
+            {
+                // replace this value
+                dic[key] = value;
+            }
+            else
+            {
+                // add this value 
+                dic.Add(key, value);
+            }
+        }
+
         public static Entity Copy(this Entity record, params string[] columns)
         {
             var result = new Entity(record.LogicalName, record.Id);

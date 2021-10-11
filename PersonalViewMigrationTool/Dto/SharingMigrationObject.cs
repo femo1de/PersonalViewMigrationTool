@@ -1,5 +1,6 @@
 ﻿using Microsoft.Crm.Sdk.Messages;
 using System;
+using System.Collections.Generic;
 
 namespace PersonalViewMigrationTool.Dto
 {
@@ -10,6 +11,9 @@ namespace PersonalViewMigrationTool.Dto
         internal PrincipalAccess PoAObject { get; set; }
 
         internal string PoAName { get; set; }
+
+        // need to override ChildObjects but make it clear that this is the end of the chain
+        internal override IEnumerable<MigrationObjectBase> ChildObjects => default;
 
         #region ctor
 
