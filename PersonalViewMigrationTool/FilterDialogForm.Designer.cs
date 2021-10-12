@@ -38,7 +38,7 @@ namespace PersonalViewMigrationTool
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(331, 93);
+            this.btnCancel.Location = new System.Drawing.Point(255, 67);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 0;
@@ -48,7 +48,7 @@ namespace PersonalViewMigrationTool
             // 
             // btnOk
             // 
-            this.btnOk.Location = new System.Drawing.Point(250, 93);
+            this.btnOk.Location = new System.Drawing.Point(174, 67);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
             this.btnOk.TabIndex = 1;
@@ -58,9 +58,11 @@ namespace PersonalViewMigrationTool
             // 
             // dtpMigrateViewsAfter
             // 
-            this.dtpMigrateViewsAfter.Location = new System.Drawing.Point(187, 22);
+            this.dtpMigrateViewsAfter.CustomFormat = "dd.MM.yyyy HH:mm:ss";
+            this.dtpMigrateViewsAfter.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.dtpMigrateViewsAfter.Location = new System.Drawing.Point(192, 22);
             this.dtpMigrateViewsAfter.Name = "dtpMigrateViewsAfter";
-            this.dtpMigrateViewsAfter.Size = new System.Drawing.Size(200, 20);
+            this.dtpMigrateViewsAfter.Size = new System.Drawing.Size(138, 20);
             this.dtpMigrateViewsAfter.TabIndex = 2;
             // 
             // label1
@@ -78,7 +80,7 @@ namespace PersonalViewMigrationTool
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(418, 128);
+            this.ClientSize = new System.Drawing.Size(347, 106);
             this.ControlBox = false;
             this.Controls.Add(this.label1);
             this.Controls.Add(this.dtpMigrateViewsAfter);
