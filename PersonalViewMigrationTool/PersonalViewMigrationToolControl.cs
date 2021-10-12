@@ -278,7 +278,7 @@ namespace PersonalViewMigrationTool
         private void checkAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // do this only on the top level as changes will propagate to child elements automatically. Only enable objects that technically can be migrated
-            foreach (var item in migrationObjects.Where(x => x.CanBeMigrated))
+            foreach (var item in migrationObjects.Where(x => x.CanBeMigrated && !x.WillBeMigrated))
             {
                 item.WillBeMigrated = true;
             }
@@ -286,7 +286,7 @@ namespace PersonalViewMigrationTool
 
         private void uncheckAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            foreach (var item in migrationObjects) // do this only on the top level as changes will propagate to child elements automatically
+            foreach (var item in migrationObjects.Where(x => x.WillBeMigrated)) // do this only on the top level as changes will propagate to child elements automatically
             {
                 item.WillBeMigrated = false;
             }
@@ -978,6 +978,7 @@ namespace PersonalViewMigrationTool
             btnLoadSharing.Enabled = false;
             btnLoadUsers.Enabled = false;
             btnStartMigration.Enabled = false;
+            btnFilter.Enabled = false;
 
             tbMigrationResult.Text = "Migration completed.";
         }

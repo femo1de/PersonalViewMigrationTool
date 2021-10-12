@@ -18,7 +18,7 @@ namespace PersonalViewMigrationTool.Dto
 
         internal string OwnerName { get; set; }
 
-        internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; set; } = new List<PersonalViewMigrationObject>();
+        internal List<PersonalViewMigrationObject> PersonalViewsMigrationObjects { get; } = new List<PersonalViewMigrationObject>();
 
         // override childObjects to point to the personalViews that sit below this object
         internal override IEnumerable<MigrationObjectBase> ChildObjects => PersonalViewsMigrationObjects;
@@ -32,6 +32,7 @@ namespace PersonalViewMigrationTool.Dto
             SourceOwnerId = ownerId;
             OwnerName = ownerName;
             ElementId = ownerId.ToString();
+
 
             // trigger refresh of the tree view
             if (UpdateUiDelegate != null) UpdateUiDelegate.Invoke(new NodeUpdateObject()
