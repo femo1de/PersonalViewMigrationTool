@@ -80,6 +80,12 @@
     <Compile Include="Dto\PersonalViewMigrationObject.cs" />
     <Compile Include="Dto\SharingMigrationObject.cs" />
     <Compile Include="Extensions\Extensions.cs" />
+    <Compile Include="FilterDialogForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FilterDialogForm.Designer.cs">
+      <DependentUpon>FilterDialogForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="PersonalViewMigrationTool.cs" />
     <Compile Include="PersonalViewMigrationToolControl.cs">
       <SubType>UserControl</SubType>
@@ -99,6 +105,9 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="FilterDialogForm.resx">
+      <DependentUpon>FilterDialogForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="PersonalViewMigrationToolControl.resx">
       <DependentUpon>PersonalViewMigrationToolControl.cs</DependentUpon>
     </EmbeddedResource>

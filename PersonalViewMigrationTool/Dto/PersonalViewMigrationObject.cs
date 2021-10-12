@@ -25,6 +25,8 @@ namespace PersonalViewMigrationTool.Dto
         // override ChildObjects to point to the sharings that sit below this view object
         internal override IEnumerable<MigrationObjectBase> ChildObjects => MappedSharings;
 
+        internal override MigrationObjectBase Parent => _parentMigrationObject;
+
         #region ctor
 
         internal PersonalViewMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate,

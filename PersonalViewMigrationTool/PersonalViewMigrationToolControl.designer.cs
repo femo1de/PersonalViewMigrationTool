@@ -33,8 +33,8 @@ namespace PersonalViewMigrationTool
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PersonalViewMigrationToolControl));
-            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Users");
-            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Teams");
+            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Users");
+            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Teams");
             this.toolStripMenu = new System.Windows.Forms.ToolStrip();
             this.tsbClose = new System.Windows.Forms.ToolStripButton();
             this.tssSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -45,11 +45,13 @@ namespace PersonalViewMigrationTool
             this.dropDownButtonLogs = new System.Windows.Forms.ToolStripDropDownButton();
             this.openLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openLogFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteLogFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.btnConnectTargetOrg = new System.Windows.Forms.Button();
             this.btnLoadUsers = new System.Windows.Forms.Button();
             this.lbDebugOutput = new System.Windows.Forms.ListBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.btnFilter = new System.Windows.Forms.Button();
             this.btnConnectSource = new System.Windows.Forms.Button();
             this.tbMigrationResult = new System.Windows.Forms.TextBox();
             this.tbSharingRetrievedStatus = new System.Windows.Forms.TextBox();
@@ -68,10 +70,10 @@ namespace PersonalViewMigrationTool
             this.cmsOverviewTab = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.expandAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
             this.checkAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.uncheckAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.deleteLogFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.tbFilter = new System.Windows.Forms.TextBox();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -168,6 +170,13 @@ namespace PersonalViewMigrationTool
             this.openLogFolderToolStripMenuItem.Text = "Open Log Folder";
             this.openLogFolderToolStripMenuItem.Click += new System.EventHandler(this.openLogFolderToolStripMenuItem_Click);
             // 
+            // deleteLogFileToolStripMenuItem
+            // 
+            this.deleteLogFileToolStripMenuItem.Name = "deleteLogFileToolStripMenuItem";
+            this.deleteLogFileToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.deleteLogFileToolStripMenuItem.Text = "Delete Log File";
+            this.deleteLogFileToolStripMenuItem.Click += new System.EventHandler(this.deleteLogFileToolStripMenuItem_Click);
+            // 
             // btnConnectTargetOrg
             // 
             this.btnConnectTargetOrg.Location = new System.Drawing.Point(23, 60);
@@ -183,7 +192,7 @@ namespace PersonalViewMigrationTool
             this.btnLoadUsers.Enabled = false;
             this.btnLoadUsers.Location = new System.Drawing.Point(23, 103);
             this.btnLoadUsers.Name = "btnLoadUsers";
-            this.btnLoadUsers.Size = new System.Drawing.Size(127, 23);
+            this.btnLoadUsers.Size = new System.Drawing.Size(121, 23);
             this.btnLoadUsers.TabIndex = 10;
             this.btnLoadUsers.Text = "Load Users";
             this.btnLoadUsers.UseVisualStyleBackColor = true;
@@ -229,6 +238,8 @@ namespace PersonalViewMigrationTool
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.tbFilter);
+            this.panel1.Controls.Add(this.btnFilter);
             this.panel1.Controls.Add(this.btnConnectSource);
             this.panel1.Controls.Add(this.tbMigrationResult);
             this.panel1.Controls.Add(this.tbSharingRetrievedStatus);
@@ -246,6 +257,17 @@ namespace PersonalViewMigrationTool
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(344, 420);
             this.panel1.TabIndex = 12;
+            // 
+            // btnFilter
+            // 
+            this.btnFilter.Enabled = false;
+            this.btnFilter.Location = new System.Drawing.Point(23, 231);
+            this.btnFilter.Name = "btnFilter";
+            this.btnFilter.Size = new System.Drawing.Size(121, 23);
+            this.btnFilter.TabIndex = 24;
+            this.btnFilter.Text = "(optional) Filter";
+            this.btnFilter.UseVisualStyleBackColor = true;
+            this.btnFilter.Click += new System.EventHandler(this.btnFilter_Click);
             // 
             // btnConnectSource
             // 
@@ -269,7 +291,7 @@ namespace PersonalViewMigrationTool
             // tbSharingRetrievedStatus
             // 
             this.tbSharingRetrievedStatus.Enabled = false;
-            this.tbSharingRetrievedStatus.Location = new System.Drawing.Point(156, 192);
+            this.tbSharingRetrievedStatus.Location = new System.Drawing.Point(156, 191);
             this.tbSharingRetrievedStatus.Name = "tbSharingRetrievedStatus";
             this.tbSharingRetrievedStatus.Size = new System.Drawing.Size(166, 20);
             this.tbSharingRetrievedStatus.TabIndex = 21;
@@ -278,7 +300,7 @@ namespace PersonalViewMigrationTool
             // tbPersonalViewsLoadedStatus
             // 
             this.tbPersonalViewsLoadedStatus.Enabled = false;
-            this.tbPersonalViewsLoadedStatus.Location = new System.Drawing.Point(156, 149);
+            this.tbPersonalViewsLoadedStatus.Location = new System.Drawing.Point(156, 148);
             this.tbPersonalViewsLoadedStatus.Name = "tbPersonalViewsLoadedStatus";
             this.tbPersonalViewsLoadedStatus.Size = new System.Drawing.Size(166, 20);
             this.tbPersonalViewsLoadedStatus.TabIndex = 20;
@@ -287,7 +309,7 @@ namespace PersonalViewMigrationTool
             // tbUsersLoadStatus
             // 
             this.tbUsersLoadStatus.Enabled = false;
-            this.tbUsersLoadStatus.Location = new System.Drawing.Point(156, 106);
+            this.tbUsersLoadStatus.Location = new System.Drawing.Point(156, 105);
             this.tbUsersLoadStatus.Name = "tbUsersLoadStatus";
             this.tbUsersLoadStatus.Size = new System.Drawing.Size(166, 20);
             this.tbUsersLoadStatus.TabIndex = 19;
@@ -296,7 +318,7 @@ namespace PersonalViewMigrationTool
             // tbConnectedTargetOrg
             // 
             this.tbConnectedTargetOrg.Enabled = false;
-            this.tbConnectedTargetOrg.Location = new System.Drawing.Point(156, 63);
+            this.tbConnectedTargetOrg.Location = new System.Drawing.Point(156, 62);
             this.tbConnectedTargetOrg.Name = "tbConnectedTargetOrg";
             this.tbConnectedTargetOrg.Size = new System.Drawing.Size(166, 20);
             this.tbConnectedTargetOrg.TabIndex = 18;
@@ -305,7 +327,7 @@ namespace PersonalViewMigrationTool
             // tbConnectedSourceOrg
             // 
             this.tbConnectedSourceOrg.Enabled = false;
-            this.tbConnectedSourceOrg.Location = new System.Drawing.Point(156, 20);
+            this.tbConnectedSourceOrg.Location = new System.Drawing.Point(156, 19);
             this.tbConnectedSourceOrg.Name = "tbConnectedSourceOrg";
             this.tbConnectedSourceOrg.Size = new System.Drawing.Size(166, 20);
             this.tbConnectedSourceOrg.TabIndex = 17;
@@ -314,7 +336,7 @@ namespace PersonalViewMigrationTool
             // btnStartMigration
             // 
             this.btnStartMigration.Enabled = false;
-            this.btnStartMigration.Location = new System.Drawing.Point(90, 240);
+            this.btnStartMigration.Location = new System.Drawing.Point(88, 279);
             this.btnStartMigration.Name = "btnStartMigration";
             this.btnStartMigration.Size = new System.Drawing.Size(127, 23);
             this.btnStartMigration.TabIndex = 16;
@@ -327,7 +349,7 @@ namespace PersonalViewMigrationTool
             this.btnLoadSharing.Enabled = false;
             this.btnLoadSharing.Location = new System.Drawing.Point(23, 189);
             this.btnLoadSharing.Name = "btnLoadSharing";
-            this.btnLoadSharing.Size = new System.Drawing.Size(127, 23);
+            this.btnLoadSharing.Size = new System.Drawing.Size(121, 23);
             this.btnLoadSharing.TabIndex = 14;
             this.btnLoadSharing.Text = "Load Sharing";
             this.btnLoadSharing.UseVisualStyleBackColor = true;
@@ -338,7 +360,7 @@ namespace PersonalViewMigrationTool
             this.btnLoadPersonalViews.Enabled = false;
             this.btnLoadPersonalViews.Location = new System.Drawing.Point(23, 146);
             this.btnLoadPersonalViews.Name = "btnLoadPersonalViews";
-            this.btnLoadPersonalViews.Size = new System.Drawing.Size(127, 23);
+            this.btnLoadPersonalViews.Size = new System.Drawing.Size(121, 23);
             this.btnLoadPersonalViews.TabIndex = 11;
             this.btnLoadPersonalViews.Text = "Load Personal Views";
             this.btnLoadPersonalViews.UseVisualStyleBackColor = true;
@@ -394,15 +416,15 @@ namespace PersonalViewMigrationTool
             this.treeView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeView1.Location = new System.Drawing.Point(3, 3);
             this.treeView1.Name = "treeView1";
-            treeNode3.Checked = true;
-            treeNode3.Name = "nUsers";
-            treeNode3.Text = "Users";
-            treeNode4.Checked = true;
-            treeNode4.Name = "nTeams";
-            treeNode4.Text = "Teams";
+            treeNode1.Checked = true;
+            treeNode1.Name = "nUsers";
+            treeNode1.Text = "Users";
+            treeNode2.Checked = true;
+            treeNode2.Name = "nTeams";
+            treeNode2.Text = "Teams";
             this.treeView1.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode3,
-            treeNode4});
+            treeNode1,
+            treeNode2});
             this.treeView1.ShowNodeToolTips = true;
             this.treeView1.Size = new System.Drawing.Size(941, 814);
             this.treeView1.TabIndex = 0;
@@ -434,17 +456,6 @@ namespace PersonalViewMigrationTool
             this.collapseAllToolStripMenuItem.Text = "Collapse All";
             this.collapseAllToolStripMenuItem.Click += new System.EventHandler(this.collapseAllToolStripMenuItem_Click);
             // 
-            // tabPage2
-            // 
-            this.tabPage2.Controls.Add(this.lbDebugOutput);
-            this.tabPage2.Location = new System.Drawing.Point(4, 22);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(947, 820);
-            this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "Log Output";
-            this.tabPage2.UseVisualStyleBackColor = true;
-            // 
             // checkAllToolStripMenuItem
             // 
             this.checkAllToolStripMenuItem.Name = "checkAllToolStripMenuItem";
@@ -459,12 +470,25 @@ namespace PersonalViewMigrationTool
             this.uncheckAllToolStripMenuItem.Text = "Uncheck All";
             this.uncheckAllToolStripMenuItem.Click += new System.EventHandler(this.uncheckAllToolStripMenuItem_Click);
             // 
-            // deleteLogFileToolStripMenuItem
+            // tabPage2
             // 
-            this.deleteLogFileToolStripMenuItem.Name = "deleteLogFileToolStripMenuItem";
-            this.deleteLogFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.deleteLogFileToolStripMenuItem.Text = "Delete Log File";
-            this.deleteLogFileToolStripMenuItem.Click += new System.EventHandler(this.deleteLogFileToolStripMenuItem_Click);
+            this.tabPage2.Controls.Add(this.lbDebugOutput);
+            this.tabPage2.Location = new System.Drawing.Point(4, 22);
+            this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(947, 820);
+            this.tabPage2.TabIndex = 1;
+            this.tabPage2.Text = "Log Output";
+            this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // tbFilter
+            // 
+            this.tbFilter.Enabled = false;
+            this.tbFilter.Location = new System.Drawing.Point(156, 233);
+            this.tbFilter.Name = "tbFilter";
+            this.tbFilter.Size = new System.Drawing.Size(166, 20);
+            this.tbFilter.TabIndex = 25;
+            this.tbFilter.Text = "No Filter set";
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -521,7 +545,6 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabPage1;
-        private System.Windows.Forms.TreeView treeView1;
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.ContextMenuStrip cmsOverviewTab;
         private System.Windows.Forms.ToolStripMenuItem expandAllToolStripMenuItem;
@@ -529,5 +552,8 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.ToolStripMenuItem checkAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem uncheckAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteLogFileToolStripMenuItem;
+        private System.Windows.Forms.Button btnFilter; 
+        private CustomTreeViewControl treeView1;
+        private System.Windows.Forms.TextBox tbFilter;
     }
 }

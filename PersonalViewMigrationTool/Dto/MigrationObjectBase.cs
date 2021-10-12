@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace PersonalViewMigrationTool.Dto
 {
@@ -16,10 +17,38 @@ namespace PersonalViewMigrationTool.Dto
 
         internal abstract IEnumerable<MigrationObjectBase> ChildObjects { get; }
 
+        internal abstract MigrationObjectBase Parent {  get; }
+
         public MigrationObjectBase(Action<NodeUpdateObject> updateNodeUi)
         {
             this.updateNodeUi = updateNodeUi;
         }
+
+        ///// <summary>
+        ///// Sets the WillBeMigrated Flag to false if all child elements have been unchecked
+        ///// </summary>
+        //internal void UncheckIfAllChildsAreUnchecked()
+        //{
+        //    bool noCheckedMigrationChilds = true;
+
+        //    if (ChildObjects != null)
+        //    {
+        //        foreach (var child in ChildObjects)
+        //        {
+        //            if (child.WillBeMigrated)
+        //            {
+        //                // there is at least one child that should be migrated so we can't uncheck this element
+        //                noCheckedMigrationChilds = false;
+        //            }
+        //        }
+        //    }
+
+        //    if (noCheckedMigrationChilds)
+        //    {
+        //        // there are no child elements that can be migrated so we uncheck this element
+        //        WillBeMigrated = false;
+        //    }
+        //}
 
         internal bool WillBeMigrated
         {
@@ -28,7 +57,7 @@ namespace PersonalViewMigrationTool.Dto
             {
                 willBeMigrated = value;
 
-                if (value)
+                if (value) // will be migrated
                 {
                     if (ChildObjects != null)
                     {
@@ -42,7 +71,7 @@ namespace PersonalViewMigrationTool.Dto
                         }
                     }
                 }
-                else
+                else // will not be migrated
                 {
                     if (ChildObjects != null)
                     {
@@ -58,7 +87,7 @@ namespace PersonalViewMigrationTool.Dto
                     MigrationObjectBase = this,
                     UpdateReason = UpdateReason.DetailsAdded,
                     WillMigrate = value
-                });
+                }); ;
             }
         }
 

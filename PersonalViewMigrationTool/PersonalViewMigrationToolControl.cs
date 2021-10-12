@@ -115,7 +115,7 @@ namespace PersonalViewMigrationTool
 
         #endregion
 
-        #region Control Events
+        #region Form Events
 
         private void PersonalViewMigrationToolControl_Load(object sender, EventArgs e)
         {
@@ -247,6 +247,24 @@ namespace PersonalViewMigrationTool
             treeView1.CollapseAll();
         }
 
+        private void treeView1_BeforeCheck(object sender, TreeViewCancelEventArgs e)
+        {
+            // dont execute for events not triggered by the UI
+            if (e.Action == TreeViewAction.Unknown) return;
+
+            // dont allow changing the checkbox for the top nodes
+            if (e.Node.Parent == null)
+            {
+                e.Cancel = true;
+                return;
+            }
+            if (_allMigrationObjects.TryGetValue(e.Node.Name, out var migrationObjectBase))
+            {
+                // cancel the operation if theres a technical reason that prevents migration from this element
+                if (!migrationObjectBase.CanBeMigrated) e.Cancel = true;
+            }
+        }
+
         private void treeView1_AfterCheck(object sender, TreeViewEventArgs e)
         {
             if (e.Action == TreeViewAction.Unknown) return; // skip events that were not raised by the user
@@ -274,26 +292,47 @@ namespace PersonalViewMigrationTool
             }
         }
 
-        private void treeView1_BeforeCheck(object sender, TreeViewCancelEventArgs e)
-        {
-            // dont execute for events not triggered by the UI
-            if (e.Action == TreeViewAction.Unknown) return;
-
-            // dont allow changing the checkbox for the top nodes
-            if (e.Node.Parent == null) return;
-
-            if (_allMigrationObjects.TryGetValue(e.Node.Name, out var migrationObjectBase))
-            {
-                // cancel the operation if theres a technical reason that prevents migration from this element
-                if (!migrationObjectBase.CanBeMigrated) e.Cancel = true;
-            }
-        }
-
         private void deleteLogFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var lm = new LogManager(this.GetType());
             lm.DeleteLog();
             CustomLog("User deleted previous logfile.");
+        }
+
+        private void btnFilter_Click(object sender, EventArgs e)
+        {
+            var filterDialogForm = new FilterDialogForm();
+            var dialogResult = filterDialogForm.ShowDialog(this);
+
+            if (dialogResult == DialogResult.OK && filterDialogForm.MigrateViewsCreatedAfter.HasValue)
+            {
+                tbFilter.Text = "Filter selected";
+
+                // disable all personal views created after the specified time
+                foreach (var userOrTeam in migrationObjects.Where(x => x.WillBeMigrated && x.CanBeMigrated)) // only disable views of users that have been enabled for migration in the first place
+                {
+                    foreach (var personalView in userOrTeam.PersonalViewsMigrationObjects.Where(v => v.WillBeMigrated && v.CanBeMigrated))
+                    {
+                        var createdOnDate = (DateTime)personalView.PersonalView.Attributes["createdon"];
+                        if (createdOnDate < filterDialogForm.MigrateViewsCreatedAfter.Value)
+                        {
+                            personalView.NotMigrateReason = "De-Selected by the user via filter";
+                            personalView.WillBeMigrated = false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // reset all personal views
+                tbFilter.Text = "No Filter set";
+
+                // do this only on the top level as changes will propagate to child elements automatically. Only enable objects that technically can be migrated
+                foreach (var item in migrationObjects.Where(x => x.CanBeMigrated))
+                {
+                    item.WillBeMigrated = true;
+                }
+            }
         }
 
         #endregion
@@ -783,6 +822,8 @@ namespace PersonalViewMigrationTool
         {
             tbSharingRetrievedStatus.Text = $"Retrieved {migrationObjects.Sum(m => m.PersonalViewsMigrationObjects.Sum(o => o.Sharings.Count))} PoAs";
             btnStartMigration.Enabled = true;
+
+            btnFilter.Enabled = true;
 
             // add all sharings to allObjectsDictionary
             migrationObjects.SelectMany(x => x.PersonalViewsMigrationObjects)

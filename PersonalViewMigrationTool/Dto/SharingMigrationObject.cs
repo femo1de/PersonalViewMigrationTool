@@ -15,6 +15,8 @@ namespace PersonalViewMigrationTool.Dto
         // need to override ChildObjects but make it clear that this is the end of the chain
         internal override IEnumerable<MigrationObjectBase> ChildObjects => default;
 
+        internal override MigrationObjectBase Parent => _personalViewMigrationObject;
+
         #region ctor
 
         internal SharingMigrationObject(Action<NodeUpdateObject> updateNodeUiDelegate,
