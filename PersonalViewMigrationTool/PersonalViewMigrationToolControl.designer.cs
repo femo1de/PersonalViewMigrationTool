@@ -51,6 +51,7 @@ namespace PersonalViewMigrationTool
             this.lbDebugOutput = new System.Windows.Forms.ListBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.tbFilter = new System.Windows.Forms.TextBox();
             this.btnFilter = new System.Windows.Forms.Button();
             this.btnConnectSource = new System.Windows.Forms.Button();
             this.tbMigrationResult = new System.Windows.Forms.TextBox();
@@ -62,8 +63,6 @@ namespace PersonalViewMigrationTool
             this.btnStartMigration = new System.Windows.Forms.Button();
             this.btnLoadSharing = new System.Windows.Forms.Button();
             this.btnLoadPersonalViews = new System.Windows.Forms.Button();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.lblWarning = new System.Windows.Forms.Label();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.treeView1 = new CustomTreeViewControl();
@@ -73,11 +72,10 @@ namespace PersonalViewMigrationTool
             this.checkAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.uncheckAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.tbFilter = new System.Windows.Forms.TextBox();
+            this.lblWarning = new System.Windows.Forms.Label();
             this.toolStripMenu.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
-            this.panel2.SuspendLayout();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.cmsOverviewTab.SuspendLayout();
@@ -224,7 +222,6 @@ namespace PersonalViewMigrationTool
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 350F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel1.Controls.Add(this.panel1, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.panel2, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.tabControl1, 1, 0);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 25);
@@ -238,6 +235,7 @@ namespace PersonalViewMigrationTool
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.lblWarning);
             this.panel1.Controls.Add(this.tbFilter);
             this.panel1.Controls.Add(this.btnFilter);
             this.panel1.Controls.Add(this.btnConnectSource);
@@ -255,8 +253,18 @@ namespace PersonalViewMigrationTool
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(6, 6);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(344, 420);
+            this.tableLayoutPanel1.SetRowSpan(this.panel1, 2);
+            this.panel1.Size = new System.Drawing.Size(344, 846);
             this.panel1.TabIndex = 12;
+            // 
+            // tbFilter
+            // 
+            this.tbFilter.Enabled = false;
+            this.tbFilter.Location = new System.Drawing.Point(156, 233);
+            this.tbFilter.Name = "tbFilter";
+            this.tbFilter.Size = new System.Drawing.Size(166, 20);
+            this.tbFilter.TabIndex = 25;
+            this.tbFilter.Text = "No Filter set";
             // 
             // btnFilter
             // 
@@ -366,25 +374,6 @@ namespace PersonalViewMigrationTool
             this.btnLoadPersonalViews.UseVisualStyleBackColor = true;
             this.btnLoadPersonalViews.Click += new System.EventHandler(this.btnLoadPersonalViews_Click);
             // 
-            // panel2
-            // 
-            this.panel2.Controls.Add(this.lblWarning);
-            this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel2.Location = new System.Drawing.Point(6, 432);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(344, 420);
-            this.panel2.TabIndex = 13;
-            // 
-            // lblWarning
-            // 
-            this.lblWarning.AutoSize = true;
-            this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblWarning.Location = new System.Drawing.Point(3, 112);
-            this.lblWarning.Name = "lblWarning";
-            this.lblWarning.Size = new System.Drawing.Size(334, 91);
-            this.lblWarning.TabIndex = 0;
-            this.lblWarning.Text = resources.GetString("lblWarning.Text");
-            // 
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tabPage1);
@@ -481,14 +470,15 @@ namespace PersonalViewMigrationTool
             this.tabPage2.Text = "Log Output";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
-            // tbFilter
+            // lblWarning
             // 
-            this.tbFilter.Enabled = false;
-            this.tbFilter.Location = new System.Drawing.Point(156, 233);
-            this.tbFilter.Name = "tbFilter";
-            this.tbFilter.Size = new System.Drawing.Size(166, 20);
-            this.tbFilter.TabIndex = 25;
-            this.tbFilter.Text = "No Filter set";
+            this.lblWarning.AutoSize = true;
+            this.lblWarning.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblWarning.Location = new System.Drawing.Point(7, 412);
+            this.lblWarning.Name = "lblWarning";
+            this.lblWarning.Size = new System.Drawing.Size(334, 91);
+            this.lblWarning.TabIndex = 26;
+            this.lblWarning.Text = resources.GetString("lblWarning.Text");
             // 
             // PersonalViewMigrationToolControl
             // 
@@ -504,8 +494,6 @@ namespace PersonalViewMigrationTool
             this.tableLayoutPanel1.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
-            this.panel2.ResumeLayout(false);
-            this.panel2.PerformLayout();
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.cmsOverviewTab.ResumeLayout(false);
@@ -536,8 +524,6 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.TextBox tbConnectedSourceOrg;
         private System.Windows.Forms.TextBox tbMigrationResult;
         private System.Windows.Forms.TextBox tbSharingRetrievedStatus;
-        private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.Label lblWarning;
         private System.Windows.Forms.Button btnConnectSource;
         private System.Windows.Forms.ToolStripButton tsbHelp;
         private System.Windows.Forms.ToolStripButton tsbFeedback;
@@ -555,5 +541,6 @@ namespace PersonalViewMigrationTool
         private System.Windows.Forms.Button btnFilter; 
         private CustomTreeViewControl treeView1;
         private System.Windows.Forms.TextBox tbFilter;
+        private System.Windows.Forms.Label lblWarning;
     }
 }
